@@ -28,15 +28,15 @@ export const referenceTables: ReferenceTableDef[] = [
     title: 'Tap Drill & Clearance Hole Sizes (Metric)',
     shortDescription: 'Recommended tap drill and clearance hole diameters for common ISO metric threads.',
     intro:
-      'Tap drill sizes below target roughly 75% thread engagement, the common machine-shop default. Clearance holes give a close (precise location) or free (easier assembly) fit for a through-bolt.',
+      'Tap drill sizes below target roughly 75% thread engagement, the common machine-shop default. Clearance holes give a close (precise location) or normal (easier assembly) fit for a through-bolt.',
     sourceNote:
-      'Typical values for ISO metric coarse-pitch threads, compiled from common machinist reference tables (cf. ISO 261 / ISO 273). Confirm against your tap manufacturer’s chart for critical fits.',
+      'Typical values for ISO metric coarse-pitch threads, compiled from common machinist reference tables (cf. ISO 261 / ISO 273 close and medium fit classes). Confirm against your tap manufacturer’s chart for critical fits.',
     columns: [
       { id: 'thread', label: 'Thread' },
       { id: 'pitch', label: 'Pitch (mm)', numeric: true },
       { id: 'tapDrill', label: 'Tap Drill (mm)', numeric: true },
       { id: 'clearanceClose', label: 'Clearance, Close Fit (mm)', numeric: true },
-      { id: 'clearanceFree', label: 'Clearance, Free Fit (mm)', numeric: true }
+      { id: 'clearanceFree', label: 'Clearance, Normal Fit (mm)', numeric: true }
     ],
     rows: [
       { thread: 'M2', pitch: 0.4, tapDrill: 1.6, clearanceClose: 2.2, clearanceFree: 2.4 },
@@ -94,7 +94,7 @@ export const referenceTables: ReferenceTableDef[] = [
     intro:
       'Major diameter, pitch (metric) or threads-per-inch (imperial), and approximate minor diameter for commonly used external thread sizes.',
     sourceNote:
-      'Minor diameters are approximated from standard 60° thread geometry (metric: minor ≈ major − 1.0825 × pitch; UN: minor ≈ major − 1.2989 / TPI). Reference only — verify against ISO 724 or ASME B1.1 for critical tolerancing.',
+      'Metric minor diameters are the standard ISO 724 basic (theoretical) minor diameter, computed as major − 1.0825 × pitch. Imperial minor diameters are the ASME B1.1 basic external-thread minor diameter for each designation. Neither includes a specific tolerance class allowance — verify against ISO 724 or ASME B1.1 directly for critical tolerancing.',
     columns: [
       { id: 'designation', label: 'Designation' },
       { id: 'series', label: 'Series' },
@@ -112,15 +112,15 @@ export const referenceTables: ReferenceTableDef[] = [
       { designation: 'M10 × 1.5', series: 'Metric coarse', pitchOrTpi: '1.5', majorDia: '10.000 mm', minorDia: '8.376 mm' },
       { designation: 'M10 × 1.25', series: 'Metric fine', pitchOrTpi: '1.25', majorDia: '10.000 mm', minorDia: '8.647 mm' },
       { designation: 'M12 × 1.75', series: 'Metric coarse', pitchOrTpi: '1.75', majorDia: '12.000 mm', minorDia: '10.106 mm' },
-      { designation: '1/4-20 UNC', series: 'Imperial coarse', pitchOrTpi: '20', majorDia: '0.2500 in', minorDia: '0.1959 in' },
-      { designation: '1/4-28 UNF', series: 'Imperial fine', pitchOrTpi: '28', majorDia: '0.2500 in', minorDia: '0.2139 in' },
-      { designation: '5/16-18 UNC', series: 'Imperial coarse', pitchOrTpi: '18', majorDia: '0.3125 in', minorDia: '0.2554 in' },
-      { designation: '5/16-24 UNF', series: 'Imperial fine', pitchOrTpi: '24', majorDia: '0.3125 in', minorDia: '0.2714 in' },
-      { designation: '3/8-16 UNC', series: 'Imperial coarse', pitchOrTpi: '16', majorDia: '0.3750 in', minorDia: '0.3114 in' },
-      { designation: '1/2-13 UNC', series: 'Imperial coarse', pitchOrTpi: '13', majorDia: '0.5000 in', minorDia: '0.4224 in' },
-      { designation: '1/2-20 UNF', series: 'Imperial fine', pitchOrTpi: '20', majorDia: '0.5000 in', minorDia: '0.4459 in' },
-      { designation: '3/4-10 UNC', series: 'Imperial coarse', pitchOrTpi: '10', majorDia: '0.7500 in', minorDia: '0.6510 in' },
-      { designation: '1-8 UNC', series: 'Imperial coarse', pitchOrTpi: '8', majorDia: '1.0000 in', minorDia: '0.8876 in' }
+      { designation: '1/4-20 UNC', series: 'Imperial coarse', pitchOrTpi: '20', majorDia: '0.2500 in', minorDia: '0.1905 in' },
+      { designation: '1/4-28 UNF', series: 'Imperial fine', pitchOrTpi: '28', majorDia: '0.2500 in', minorDia: '0.2075 in' },
+      { designation: '5/16-18 UNC', series: 'Imperial coarse', pitchOrTpi: '18', majorDia: '0.3125 in', minorDia: '0.2458 in' },
+      { designation: '5/16-24 UNF', series: 'Imperial fine', pitchOrTpi: '24', majorDia: '0.3125 in', minorDia: '0.2624 in' },
+      { designation: '3/8-16 UNC', series: 'Imperial coarse', pitchOrTpi: '16', majorDia: '0.3750 in', minorDia: '0.3006 in' },
+      { designation: '1/2-13 UNC', series: 'Imperial coarse', pitchOrTpi: '13', majorDia: '0.5000 in', minorDia: '0.4084 in' },
+      { designation: '1/2-20 UNF', series: 'Imperial fine', pitchOrTpi: '20', majorDia: '0.5000 in', minorDia: '0.4405 in' },
+      { designation: '3/4-10 UNC', series: 'Imperial coarse', pitchOrTpi: '10', majorDia: '0.7500 in', minorDia: '0.6309 in' },
+      { designation: '1-8 UNC', series: 'Imperial coarse', pitchOrTpi: '8', majorDia: '1.0000 in', minorDia: '0.8512 in' }
     ]
   },
   {
@@ -162,7 +162,7 @@ export const referenceTables: ReferenceTableDef[] = [
     intro:
       'Approximate hardness scale conversions for steel, following the general correlation pattern used in ASTM E140. Applies to wrought or forged carbon and low-alloy steel only — not valid for austenitic stainless steel, cast irons, or non-ferrous metals.',
     sourceNote:
-      'Approximate correlation only, not a substitute for direct measurement on the material in question. Different microstructures give different actual correlations even at the same hardness reading.',
+      'Approximate correlation only, not a substitute for direct measurement on the material in question. Different microstructures give different actual correlations even at the same hardness reading, and published conversion tables commonly disagree by a few HRC/HV points at the same Brinell value — treat this as a ballpark, not a certified conversion.',
     columns: [
       { id: 'hb', label: 'Brinell (HB)', numeric: true },
       { id: 'hrc', label: 'Rockwell C (HRC)' },
@@ -265,7 +265,7 @@ export const referenceTables: ReferenceTableDef[] = [
       { id: 'aluminumMm', label: 'Aluminum (mm)', numeric: true }
     ],
     rows: [
-      { gauge: 7, steelIn: 0.1793, steelMm: 4.55, aluminumIn: 0.18, aluminumMm: 4.57 },
+      { gauge: 7, steelIn: 0.1793, steelMm: 4.55, aluminumIn: 0.144, aluminumMm: 3.67 },
       { gauge: 10, steelIn: 0.1345, steelMm: 3.42, aluminumIn: 0.102, aluminumMm: 2.59 },
       { gauge: 12, steelIn: 0.1046, steelMm: 2.66, aluminumIn: 0.081, aluminumMm: 2.05 },
       { gauge: 14, steelIn: 0.0747, steelMm: 1.9, aluminumIn: 0.064, aluminumMm: 1.63 },
