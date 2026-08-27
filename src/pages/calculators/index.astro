@@ -1,20 +1,29 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { calculators } from '../../lib/calculators/registry';
 ---
 
 <BaseLayout
   title="Calculators"
-  description="Engineering calculators — gear ratio, beam deflection, bolt torque, and more — coming soon to Creek Mechanical."
+  description="Free engineering calculators — gear ratio, beam deflection, bolt torque, bearing life, pipe flow, buckling, and more."
 >
-  <section class="coming-soon wrap">
-    <span class="badge">Coming soon</span>
-    <h1>Calculators</h1>
+  <section class="hero wrap">
+    <h1>Engineering Calculators</h1>
     <p>
-      Closed-form engineering calculators are coming here first: gear
-      ratio and torque, shaft torque/power/RPM, beam deflection, bolt
-      torque and preload, bearing life, pipe flow, column buckling,
-      thermal expansion, factor of safety, and spring rate — each with
-      unit switching, a shareable permalink, and a visible worked formula.
+      Closed-form calculators with metric/imperial unit switching, a
+      shareable permalink for every result, and a visible worked formula so
+      you can check the math yourself.
     </p>
+  </section>
+
+  <section class="wrap">
+    <div class="hub-grid">
+      {calculators.map((c) => (
+        <a class="hub-card" href={`/calculators/${c.slug}/`}>
+          <h3>{c.title}</h3>
+          <p>{c.shortDescription}</p>
+        </a>
+      ))}
+    </div>
   </section>
 </BaseLayout>

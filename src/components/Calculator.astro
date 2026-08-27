@@ -1,0 +1,228 @@
+---
+import type { CalculatorDef } from '../lib/calculators/registry';
+
+interface Props {
+  def: CalculatorDef;
+}
+
+const { def } = Astro.props;
+---
+
+<div
+  class="calculator"
+  data-calculator
+  data-slug={def.slug}
+  data-fields={JSON.stringify(def.fields)}
+  data-results={JSON.stringify(def.results)}
+>
+  <div class="calc-toolbar">
+    <div class="unit-toggle" role="group" aria-label="Unit system">
+      <button type="button" data-system-btn="metric" class="active" aria-pressed="true">Metric</button>
+      <button type="button" data-system-btn="imperial" aria-pressed="false">Imperial</button>
+    </div>
+    <button type="button" class="permalink-btn" data-permalink>Copy link</button>
+  </div>
+
+  <div class="calc-grid">
+    <div class="calc-inputs" data-inputs>
+      {def.fields.map((f) => (
+        <div class="field" data-field-row={f.id}>
+          <label for={`field-${f.id}`}>{f.label}</label>
+          {f.type === 'select' ? (
+            <select id={`field-${f.id}`} data-field={f.id} data-kind={f.kind}>
+              {f.options?.map((opt) => (
+                <option value={opt.value} selected={opt.value === f.default}>{opt.label}</option>
+              ))}
+            </select>
+          ) : (
+            <div class="field-input">
+              <input
+                id={`field-${f.id}`}
+                data-field={f.id}
+                data-kind={f.kind}
+                type="number"
+                value={f.default}
+                min={f.min}
+                step={f.step ?? 'any'}
+              />
+              <span class="field-unit" data-unit={f.id}></span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <div class="calc-results" data-results>
+      <h3>Result</h3>
+      {def.results.map((r) => (
+        <div class="result-row">
+          <span class="result-label">{r.label}</span>
+          <span class="result-value">
+            <span data-result={r.id}>—</span>
+            <span class="result-unit" data-result-unit={r.id}></span>
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <details class="calc-formula">
+    <summary>Show worked formula</summary>
+    <p class="formula-text">{def.formulaText}</p>
+    <ol class="formula-steps" data-steps></ol>
+    <p class="formula-note">Steps are shown in SI units regardless of the display unit system above.</p>
+  </details>
+</div>
+
+<script>
+  import { formulas } from '../lib/calculators/formulas';
+  import { toSI, fromSI, unitSymbol, convertDisplay } from '../lib/calculators/units';
+
+  const root = document.querySelector('[data-calculator]');
+  const slug = root.dataset.slug;
+  const fields = JSON.parse(root.dataset.fields);
+  const results = JSON.parse(root.dataset.results);
+  let system = 'metric';
+
+  function fmt(v) {
+    if (!Number.isFinite(v)) return '—';
+    if (v !== 0 && (Math.abs(v) >= 100000 || Math.abs(v) < 0.001)) return v.toExponential(3);
+    return Number(v.toPrecision(5)).toString();
+  }
+
+  function getInputEl(id) {
+    return root.querySelector(`[data-field="${id}"]`);
+  }
+
+  function updateUnitLabels() {
+    for (const f of fields) {
+      if (f.kind === 'none') continue;
+      const el = root.querySelector(`[data-unit="${f.id}"]`);
+      if (el) el.textContent = unitSymbol(f.kind, system);
+    }
+    for (const r of results) {
+      const el = root.querySelector(`[data-result-unit="${r.id}"]`);
+      if (el) el.textContent = unitSymbol(r.kind, system);
+    }
+  }
+
+  function readInputs() {
+    const raw = {};
+    for (const f of fields) {
+      const el = getInputEl(f.id);
+      raw[f.id] = parseFloat(el.value);
+    }
+    return raw;
+  }
+
+  function updatePermalink(raw) {
+    const params = new URLSearchParams();
+    params.set('system', system);
+    for (const [id, value] of Object.entries(raw)) {
+      if (Number.isFinite(value)) params.set(id, String(value));
+    }
+    const url = `${location.pathname}?${params.toString()}`;
+    history.replaceState(null, '', url);
+  }
+
+  function recompute() {
+    const raw = readInputs();
+    const inputsSI = {};
+    for (const f of fields) {
+      inputsSI[f.id] = toSI(f.kind, system, raw[f.id]);
+    }
+
+    const hasInvalid = Object.values(raw).some((v) => !Number.isFinite(v));
+    const stepsList = root.querySelector('[data-steps]');
+
+    if (hasInvalid) {
+      for (const r of results) {
+        const el = root.querySelector(`[data-result="${r.id}"]`);
+        if (el) el.textContent = '—';
+      }
+      stepsList.innerHTML = '';
+      return;
+    }
+
+    const { results: resultsSI, steps } = formulas[slug](inputsSI);
+
+    for (const r of results) {
+      const el = root.querySelector(`[data-result="${r.id}"]`);
+      if (el) el.textContent = fmt(fromSI(r.kind, system, resultsSI[r.id]));
+    }
+
+    stepsList.innerHTML = '';
+    for (const step of steps) {
+      const li = document.createElement('li');
+      li.textContent = step;
+      stepsList.appendChild(li);
+    }
+
+    updatePermalink(raw);
+  }
+
+  function setSystem(next) {
+    if (next === system) return;
+    const raw = readInputs();
+    for (const f of fields) {
+      if (f.type === 'select' || f.kind === 'none') continue;
+      const el = getInputEl(f.id);
+      const converted = convertDisplay(f.kind, system, next, raw[f.id]);
+      el.value = Number.isFinite(converted) ? Number(converted.toPrecision(6)) : el.value;
+    }
+    system = next;
+    for (const btn of root.querySelectorAll('[data-system-btn]')) {
+      const active = btn.dataset.systemBtn === system;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    }
+    updateUnitLabels();
+    recompute();
+  }
+
+  function applyFromURL() {
+    const params = new URLSearchParams(location.search);
+    const urlSystem = params.get('system');
+    if (urlSystem === 'metric' || urlSystem === 'imperial') {
+      system = urlSystem;
+      for (const btn of root.querySelectorAll('[data-system-btn]')) {
+        const active = btn.dataset.systemBtn === system;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      }
+    }
+    for (const f of fields) {
+      const value = params.get(f.id);
+      if (value === null) continue;
+      const num = parseFloat(value);
+      if (Number.isFinite(num)) getInputEl(f.id).value = num;
+    }
+  }
+
+  root.querySelectorAll('[data-system-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => setSystem(btn.dataset.systemBtn));
+  });
+
+  root.querySelectorAll('[data-field]').forEach((el) => {
+    el.addEventListener('input', recompute);
+    el.addEventListener('change', recompute);
+  });
+
+  const permalinkBtn = root.querySelector('[data-permalink]');
+  permalinkBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+    } catch {
+      // Clipboard API unavailable — the URL is already live in the address bar via replaceState.
+    }
+    const original = permalinkBtn.textContent;
+    permalinkBtn.textContent = 'Copied!';
+    setTimeout(() => {
+      permalinkBtn.textContent = original;
+    }, 1500);
+  });
+
+  applyFromURL();
+  updateUnitLabels();
+  recompute();
+</script>

@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Calculator from '../../components/Calculator.astro';
+import { calculators } from '../../lib/calculators/registry';
+
+export function getStaticPaths() {
+  return calculators.map((def) => ({ params: { slug: def.slug }, props: { def } }));
+}
+
+const { def } = Astro.props;
+---
+
+<BaseLayout title={def.title} description={def.shortDescription}>
+  <article class="tool-page wrap">
+    <h1>{def.title}</h1>
+    <p class="tool-intro">{def.intro}</p>
+
+    <Calculator def={def} />
+
+    <p class="tool-footnote">
+      This calculator runs entirely in your browser — nothing you enter is
+      sent anywhere. Results are for engineering reference only and are not
+      a substitute for professional judgment; see the <a href="/terms/">Terms</a>
+      page.
+    </p>
+  </article>
+</BaseLayout>

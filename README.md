@@ -11,12 +11,15 @@ assessment and 11-stage roadmap.
 
 ## Status
 
-Stages 0–2 are built: positioning pages (About, Privacy, Terms, Contact) and
-the site's route skeleton (`/tools/`, `/calculators/`, `/reference/`,
-`/guides/`, `/services/`) as placeholders. Stage 3 onward (the calculator
-engine, reference data, WASM CAD tools) has not started. See
-[`CLAUDE.md`](CLAUDE.md) for the durable constraints and conventions this
-project follows going forward.
+Stages 0–3 are built: positioning pages (About, Privacy, Terms, Contact),
+the site's route skeleton, and a calculator engine with its first wave of
+10 calculators (gear ratio, shaft torque, beam deflection, bolt torque,
+bearing life, pipe flow, column buckling, thermal expansion, factor of
+safety, spring rate) — each with metric/imperial unit switching, a
+shareable permalink, and a visible worked formula. `/tools/`, `/reference/`,
+and `/guides/` are still placeholders; reference data and the WASM CAD
+tools have not started. See [`CLAUDE.md`](CLAUDE.md) for the durable
+constraints and conventions this project follows going forward.
 
 ## Stack
 

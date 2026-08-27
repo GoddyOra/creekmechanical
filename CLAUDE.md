@@ -19,12 +19,44 @@ roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Current architecture status
 
-Stages 0–2 of `docs/BUILD_PLAN.md` are built: a base layout, the five
-placeholder route hubs (`/tools/`, `/calculators/`, `/reference/`,
-`/guides/`, `/services/`), and the positioning pages (About, Privacy, Terms,
-Contact). Nothing from Stage 3 onward exists yet — in particular, there is
-no `<Calculator>` component, no WASM/OCCT kernel, and no content
-collections. Don't assume any of that is already wired up.
+Stages 0–3 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+pages (About, Privacy, Terms, Contact), and the calculator engine with its
+first wave of 10 calculators. `/tools/`, `/reference/`, `/guides/`, and
+`/services/` are still "coming soon" placeholders. There is no WASM/OCCT
+kernel and no content collections yet. Don't assume any of that is already
+wired up.
+
+### Calculator engine (Stage 3)
+
+- `src/lib/calculators/units.ts` — unit "kinds" (length, force, torque,
+  stress, etc.), each with metric/imperial symbols and SI conversion
+  functions. `kind: 'none'` fields (counts, ratios, RPM, select options) are
+  identical in both systems.
+- `src/lib/calculators/formulas.ts` — one pure `compute(inputsSI) => {
+  results, steps }` function per calculator, keyed by slug. Always takes and
+  returns SI base units; `steps` are human-readable worked-formula strings.
+- `src/lib/calculators/registry.ts` — the field/result metadata (labels,
+  unit kind, defaults) for each calculator. Pure data, no functions — it's
+  serialized into the page as JSON.
+- `src/components/Calculator.astro` — the reusable widget every calculator
+  page uses. Renders the static form/result markup server-side, embeds its
+  config as JSON in `data-*` attributes on the root element, and hydrates
+  with a single bundled `<script>` that reads those attributes, imports
+  `formulas.ts`/`units.ts`, and wires up live recompute, the metric/imperial
+  toggle, and the permalink.
+- `src/pages/calculators/[slug].astro` — one dynamic route (`getStaticPaths`
+  over the registry) rather than 10 bespoke page files.
+
+**Do not use `define:vars` on the Calculator script.** It forces Astro to
+inline the script and strips Vite's module bundling, which breaks the
+`import` statements this component relies on (confirmed by inspecting the
+build output — the imports were left unresolved inside a non-module IIFE).
+Pass data from the server to the client script via `data-*` attributes and
+`JSON.parse`, as this component already does.
+
+Adding an 11th calculator: add one entry to `registry.ts` and one
+`compute()` function to `formulas.ts` (add any new unit kind to `units.ts`
+if needed) — no new page or component code required.
 
 ## Hard constraints
 
@@ -44,3 +76,4 @@ collections. Don't assume any of that is already wired up.
 - Run `npm run build` before saying a change is done.
 - Routes are folders with `index.astro` (e.g. `src/pages/about/index.astro`), not flat files.
 - Every tool/calculator page should eventually link to at least one guide, and every guide back to at least one tool — this internal-linking loop is what makes the site rankable. Not enforced yet since no guide content exists.
+- Every calculator's unit kind must round-trip: converting a value metric→imperial→metric must return the original number (see `convertDisplay` in `units.ts`). Verify new kinds with a quick round-trip check before shipping.
