@@ -1,20 +1,28 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { referenceTables } from '../../lib/reference/tables';
 ---
 
 <BaseLayout
   title="Reference"
-  description="Material properties, fastener sizes, thread specs, and other engineering reference tables — coming soon to Creek Mechanical."
+  description="Free engineering reference tables — tap drill sizes, bolt torque specs, thread specifications, material properties, hardness conversion, surface finish, and gauge sizes."
 >
-  <section class="coming-soon wrap">
-    <span class="badge">Coming soon</span>
-    <h1>Reference</h1>
+  <section class="hero wrap">
+    <h1>Engineering Reference Tables</h1>
     <p>
-      Sortable, filterable, copy-pasteable reference tables are coming
-      here: tap drill and clearance hole charts, bolt torque specs by
-      grade, metric and imperial thread specifications, material property
-      tables, hardness conversion tables, surface finish charts, and
-      standard drill and sheet-metal gauge sizes.
+      Sortable, filterable lookup tables. Copy any table for pasting into a
+      spreadsheet, or print/save it as a PDF.
     </p>
+  </section>
+
+  <section class="wrap">
+    <div class="hub-grid">
+      {referenceTables.map((t) => (
+        <a class="hub-card" href={`/reference/${t.slug}/`}>
+          <h3>{t.title}</h3>
+          <p>{t.shortDescription}</p>
+        </a>
+      ))}
+    </div>
   </section>
 </BaseLayout>

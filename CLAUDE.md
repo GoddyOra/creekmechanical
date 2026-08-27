@@ -19,12 +19,12 @@ roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Current architecture status
 
-Stages 0–3 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
-pages (About, Privacy, Terms, Contact), and the calculator engine with its
-first wave of 10 calculators. `/tools/`, `/reference/`, `/guides/`, and
-`/services/` are still "coming soon" placeholders. There is no WASM/OCCT
-kernel and no content collections yet. Don't assume any of that is already
-wired up.
+Stages 0–4 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+pages (About, Privacy, Terms, Contact), the calculator engine (10
+calculators), and the reference data library (8 tables). `/tools/`,
+`/guides/`, and `/services/` are still "coming soon" placeholders. There is
+no WASM/OCCT kernel and no content collections yet. Don't assume any of
+that is already wired up.
 
 ### Calculator engine (Stage 3)
 
@@ -57,6 +57,22 @@ Pass data from the server to the client script via `data-*` attributes and
 Adding an 11th calculator: add one entry to `registry.ts` and one
 `compute()` function to `formulas.ts` (add any new unit kind to `units.ts`
 if needed) — no new page or component code required.
+
+### Reference data library (Stage 4)
+
+- `src/lib/reference/tables.ts` — one `ReferenceTableDef` per table (pure
+  data: columns, rows, an `intro`, and a `sourceNote` disclaimer). All
+  values are typical/representative figures compiled from common published
+  engineering references, not pulled from a live current standard —
+  `sourceNote` says so on every page and must stay accurate to that.
+- `src/components/ReferenceTable.astro` — the reusable sortable/filterable
+  table widget (click a header to sort, type to filter, copy visible rows
+  as TSV, print/save as PDF via `window.print()`). No imports, so unlike
+  Calculator.astro it's safe to leave Astro to inline it.
+- `src/pages/reference/[slug].astro` — one dynamic route over the registry.
+
+Adding a table: add one entry to `tables.ts` — no new page or component
+code required.
 
 ## Hard constraints
 

@@ -1,0 +1,138 @@
+---
+import type { ReferenceTableDef } from '../lib/reference/tables';
+
+interface Props {
+  def: ReferenceTableDef;
+}
+
+const { def } = Astro.props;
+---
+
+<div class="ref-table" data-ref-table>
+  <div class="ref-toolbar">
+    <input
+      type="search"
+      class="ref-filter"
+      data-filter
+      placeholder="Filter rows…"
+      aria-label="Filter table rows"
+    />
+    <div class="ref-actions">
+      <button type="button" class="ref-btn" data-copy>Copy table</button>
+      <button type="button" class="ref-btn" data-print>Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="ref-table-scroll">
+    <table>
+      <thead>
+        <tr>
+          {def.columns.map((c) => (
+            <th data-col={c.id} data-numeric={c.numeric ? 'true' : 'false'} tabindex="0">
+              {c.label}
+              <span class="sort-indicator" aria-hidden="true"></span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {def.rows.map((row) => (
+          <tr>
+            {def.columns.map((c) => (
+              <td>{row[c.id]}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="ref-empty" data-empty hidden>No rows match your filter.</p>
+</div>
+
+<script>
+  const root = document.querySelector('[data-ref-table]');
+  const table = root.querySelector('table');
+  const tbody = table.querySelector('tbody');
+  const headers = Array.from(table.querySelectorAll('th'));
+  const filterInput = root.querySelector('[data-filter]');
+  const emptyMsg = root.querySelector('[data-empty]');
+
+  let sortState = { columnIndex: -1, direction: 1 };
+
+  function applyFilter() {
+    const query = filterInput.value.trim().toLowerCase();
+    let visibleCount = 0;
+    for (const row of tbody.querySelectorAll('tr')) {
+      const match = !query || row.textContent.toLowerCase().includes(query);
+      row.hidden = !match;
+      if (match) visibleCount++;
+    }
+    emptyMsg.hidden = visibleCount > 0;
+  }
+
+  function sortByColumn(index, numeric) {
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const direction = sortState.columnIndex === index ? -sortState.direction : 1;
+    rows.sort((a, b) => {
+      const aText = a.children[index].textContent.trim();
+      const bText = b.children[index].textContent.trim();
+      if (numeric) {
+        const aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
+        const bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+        const aVal = Number.isFinite(aNum) ? aNum : -Infinity;
+        const bVal = Number.isFinite(bNum) ? bNum : -Infinity;
+        return (aVal - bVal) * direction;
+      }
+      return aText.localeCompare(bText) * direction;
+    });
+    for (const row of rows) tbody.appendChild(row);
+    sortState = { columnIndex: index, direction };
+    headers.forEach((th, i) => {
+      const indicator = th.querySelector('.sort-indicator');
+      indicator.textContent = i === index ? (direction === 1 ? ' ▲' : ' ▼') : '';
+    });
+  }
+
+  headers.forEach((th, index) => {
+    const numeric = th.dataset.numeric === 'true';
+    const trigger = () => sortByColumn(index, numeric);
+    th.addEventListener('click', trigger);
+    th.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        trigger();
+      }
+    });
+  });
+
+  filterInput.addEventListener('input', applyFilter);
+
+  root.querySelector('[data-copy]').addEventListener('click', async (e) => {
+    const cols = headers.map((th) => {
+      const clone = th.cloneNode(true);
+      clone.querySelector('.sort-indicator')?.remove();
+      return clone.textContent.trim();
+    });
+    const lines = [cols.join('\t')];
+    for (const row of tbody.querySelectorAll('tr')) {
+      if (row.hidden) continue;
+      const cells = Array.from(row.children).map((td) => td.textContent.trim());
+      lines.push(cells.join('\t'));
+    }
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.textContent = original;
+      }, 1500);
+    } catch {
+      // Clipboard API unavailable in this browser context — nothing else to fall back to here.
+    }
+  });
+
+  root.querySelector('[data-print]').addEventListener('click', () => {
+    window.print();
+  });
+</script>

@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ReferenceTable from '../../components/ReferenceTable.astro';
+import { referenceTables } from '../../lib/reference/tables';
+
+export function getStaticPaths() {
+  return referenceTables.map((def) => ({ params: { slug: def.slug }, props: { def } }));
+}
+
+const { def } = Astro.props;
+---
+
+<BaseLayout title={def.title} description={def.shortDescription}>
+  <article class="tool-page wrap">
+    <h1>{def.title}</h1>
+    <p class="tool-intro">
+      {def.intro}
+      {def.slug === 'bolt-torque-specifications' && (
+        <a href="/calculators/bolt-torque/">bolt torque calculator</a>
+      )}
+      {def.slug === 'drill-gauge-sizes' && (
+        <a href="/reference/tap-drill-clearance-hole-sizes/">tap drill chart</a>
+      )}
+      {(def.slug === 'bolt-torque-specifications' || def.slug === 'drill-gauge-sizes') && '.'}
+    </p>
+
+    <ReferenceTable def={def} />
+
+    <div class="notice">{def.sourceNote}</div>
+  </article>
+</BaseLayout>
