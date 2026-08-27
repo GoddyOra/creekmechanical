@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const updated = new Date().toISOString().slice(0, 10);
+---
+
+<BaseLayout
+  title="Privacy"
+  description="Every file-processing tool on Creek Mechanical runs entirely in your browser. Files are never uploaded to a server."
+>
+  <article class="prose wrap">
+    <h1>Privacy</h1>
+    <p class="updated">Last updated: {updated}</p>
+
+    <div class="callout">
+      <strong>Your files never leave your browser.</strong> Every CAD viewer,
+      converter, and analysis tool on this site processes your files
+      entirely on your own device, using WebAssembly running locally in
+      your browser tab. We never receive, store, or have access to any file
+      you open, convert, or check with these tools — there is no upload
+      step, because there is no server for a file to be uploaded to.
+    </div>
+
+    <h2>What we don't collect</h2>
+    <p>
+      This is a static site. At this stage we run no analytics, no
+      tracking scripts, and no cookies. If that changes in the future,
+      this page will be updated to say so plainly, before it happens.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions about this policy can go to the address on the
+      <a href="/contact/">Contact</a> page.
+    </p>
+  </article>
+</BaseLayout>

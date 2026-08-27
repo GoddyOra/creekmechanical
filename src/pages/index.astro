@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const sections = [
+  {
+    href: '/tools/',
+    title: 'Tools',
+    description: 'Browser-based CAD viewers, converters, and geometry utilities.'
+  },
+  {
+    href: '/calculators/',
+    title: 'Calculators',
+    description: 'Gear ratio, beam deflection, bolt torque, and more engineering calculators.'
+  },
+  {
+    href: '/reference/',
+    title: 'Reference',
+    description: 'Material properties, fastener sizes, thread specs, and other lookup tables.'
+  },
+  {
+    href: '/guides/',
+    title: 'Guides',
+    description: 'Long-form guides on mechanical design, tolerancing, and using these tools.'
+  },
+  {
+    href: '/services/',
+    title: 'Services',
+    description: 'Freelance mechanical engineering and CAD work, scoped and priced.'
+  }
+];
+---
+
+<BaseLayout
+  title="Free browser CAD tools that never upload your files"
+  description="Creek Mechanical is a free platform of browser-based mechanical engineering and CAD tools. Every tool runs entirely client-side — your files never leave your computer."
+>
+  <section class="hero wrap">
+    <h1>Free browser CAD tools that never upload your files</h1>
+    <p>
+      Every tool on this site runs entirely in your browser using WebAssembly —
+      nothing you open or convert is ever sent to a server. That makes it safe
+      to use on proprietary or NDA-restricted geometry, and it's a large part
+      of why we can offer these tools for free.
+    </p>
+  </section>
+
+  <section class="wrap">
+    <div class="hub-grid">
+      {sections.map((s) => (
+        <a class="hub-card" href={s.href}>
+          <h3>{s.title}</h3>
+          <p>{s.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const updated = new Date().toISOString().slice(0, 10);
+---
+
+<BaseLayout
+  title="Terms"
+  description="Terms of use for Creek Mechanical's tools, calculators, and reference data."
+>
+  <article class="prose wrap">
+    <h1>Terms</h1>
+    <p class="updated">Last updated: {updated}</p>
+
+    <div class="notice">
+      This is a placeholder terms page pending real legal review. Do not
+      treat it as final or legally binding.
+    </div>
+
+    <h2>Acceptable use</h2>
+    <p>
+      The tools, calculators, and reference data on this site are provided
+      for informational and engineering-convenience purposes. You agree not
+      to use them in a way that disrupts the site or attempts to
+      circumvent its intended operation.
+    </p>
+
+    <h2>No warranty</h2>
+    <p>
+      Tools and calculators are provided "as is," without warranty of any
+      kind. Results are not a substitute for professional engineering
+      judgment, and nothing on this site constitutes a licensed
+      Professional Engineer's sign-off on a design. Always verify
+      calculations independently before relying on them for a real design,
+      build, or safety-critical decision.
+    </p>
+
+    <h2>Changes</h2>
+    <p>These terms may change as the site grows; the "last updated" date above will reflect the latest revision.</p>
+  </article>
+</BaseLayout>

@@ -1,0 +1,85 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  schema?: object[];
+}
+
+const { title, description, schema = [] } = Astro.props;
+const siteName = 'Creek Mechanical';
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | {siteName}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {schema.map((s) => (
+      <script type="application/ld+json" set:html={JSON.stringify(s)} />
+    ))}
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Creek<span>Mechanical</span></a>
+        <nav class="primary-nav" aria-label="Primary">
+          <ul>
+            <li><a href="/tools/">Tools</a></li>
+            <li><a href="/calculators/">Calculators</a></li>
+            <li><a href="/reference/">Reference</a></li>
+            <li><a href="/guides/">Guides</a></li>
+            <li><a href="/services/">Services</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <h4>Tools</h4>
+            <ul>
+              <li><a href="/tools/">Tools</a></li>
+              <li><a href="/calculators/">Calculators</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Learn</h4>
+            <ul>
+              <li><a href="/reference/">Reference</a></li>
+              <li><a href="/guides/">Guides</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Company</h4>
+            <ul>
+              <li><a href="/about/">About</a></li>
+              <li><a href="/services/">Services</a></li>
+              <li><a href="/contact/">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="/privacy/">Privacy</a></li>
+              <li><a href="/terms/">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+        <p class="copyright">&copy; {year} Creek Mechanical. All rights reserved.</p>
+      </div>
+    </footer>
+  </body>
+</html>
