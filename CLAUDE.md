@@ -13,18 +13,18 @@ roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 ## Commands
 
 - `npm install` — install dependencies
-- `npm run dev` — local dev server at `localhost:4321`
-- `npm run build` — production build to `./dist/`; run this before saying a change is done
+- `npm run dev` — local dev server at `localhost:4321` (runs `predev` first — copies the WASM binary, see Viewer engine below)
+- `npm run build` — production build to `./dist/`; run this before saying a change is done (runs `prebuild` first, same copy step)
 - `npm run preview` — preview the production build locally
 
 ## Current architecture status
 
-Stages 0–4 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+Stages 0–5 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
 pages (About, Privacy, Terms, Contact), the calculator engine (10
-calculators), and the reference data library (8 tables). `/tools/`,
-`/guides/`, and `/services/` are still "coming soon" placeholders. There is
-no WASM/OCCT kernel and no content collections yet. Don't assume any of
-that is already wired up.
+calculators), the reference data library (8 tables), and the STEP/IGES
+viewer/converter. `/guides/` and `/services/` are still "coming soon"
+placeholders. There is no CAD compatibility checker, parametric generator,
+or content collections yet. Don't assume any of that is already wired up.
 
 ### Calculator engine (Stage 3)
 
@@ -74,22 +74,70 @@ if needed) — no new page or component code required.
 Adding a table: add one entry to `tables.ts` — no new page or component
 code required.
 
+### Viewer engine (Stage 5)
+
+The first real npm dependencies in this repo: `occt-import-js` (WASM CAD
+kernel — `ReadStepFile`/`ReadIgesFile`/`ReadBrepFile`, confirmed against the
+actually-installed version by running real test fixtures through it
+directly with Node, not just trusting its README — the README on GitHub
+`main` describes a newer unpublished API surface) and `three` (rendering).
+
+- `scripts/copy-wasm-assets.mjs` — copies `occt-import-js.wasm` (7.3 MB)
+  from `node_modules` into `public/wasm/` before every dev/build (`predev`/
+  `prebuild` npm lifecycle scripts). **Not committed to git** — always
+  sourced fresh from whatever version is installed. If you ever see
+  `public/wasm/` missing, run `npm run build` or `npm run dev` once, or
+  `node scripts/copy-wasm-assets.mjs` directly.
+- `src/lib/viewer/occt-types.ts`, `occt-import-js.d.ts` — hand-written types
+  for occt-import-js (it ships none). Verified against the real installed
+  module's runtime shape, not assumed from docs.
+- `src/lib/viewer/parse-worker.ts` — a Web Worker (`new Worker(new URL(...),
+  { type: 'module' })`), spawned lazily only when the user selects a file.
+  Loads the OCCT WASM module once via `locateFile: () => '/wasm/occt-import-js.wasm'`
+  and caches it across subsequent files in the same session.
+- `src/lib/viewer/mesh-utils.ts` — builds a `THREE.Group` from occt-import-js's
+  mesh JSON (mirrors the library's own official three.js example) and
+  computes bounding boxes. Geometry coordinates are in **millimeters**
+  (`linearUnit: 'millimeter'` is set in the worker) — don't assume meters.
+- `src/lib/viewer/zip.ts` — a minimal hand-rolled ZIP writer (store method
+  only, no compression) — no dependency needed since 3MF export just needs
+  a valid ZIP container, not compression. Verified with real `unzip -t`.
+- `src/lib/viewer/threemf.ts` — builds a 3MF package (`[Content_Types].xml`
+  + `_rels/.rels` + `3D/3dmodel.model`) via `zip.ts`. three.js has no 3MF
+  exporter, which is why this exists; it does have STL/OBJ exporters
+  (`three/addons/exporters/{STL,OBJ}Exporter.js`), used directly.
+- `src/lib/viewer/registry.ts` — 5 landing pages (one general viewer +
+  4 conversion-pair pages: STEP→STL, IGES→STL, STEP→OBJ, BREP→STL) all
+  rendering the same `<Viewer>` engine; format is detected from the
+  selected file's own extension (`format.ts`), not restricted by which
+  landing page you're on.
+- `src/components/Viewer.astro` — the widget. three.js scene (camera,
+  renderer, `OrbitControls`) initializes eagerly on page load (cheap, no
+  WASM); the worker/WASM kernel only spins up on file selection.
+- `src/pages/tools/[slug].astro` — one dynamic route over the registry.
+
 ## Hard constraints
 
 - All CAD processing runs client-side via WASM. Never add a server-side
   file-processing route — Cloudflare Pages Functions cap at 10ms CPU.
 - Never upload user files anywhere. "Files never leave your browser" is a
   product promise, not marketing copy.
-- Keep any single deployed file under 25 MiB (Cloudflare Pages limit).
-  Serve large .wasm from jsDelivr, not from /public.
+- Keep any single deployed file under 25 MiB (Cloudflare Pages limit). The
+  occt-import-js WASM binary is 7.3 MB and is self-hosted from `/public` —
+  comfortably under the cap, confirmed by measuring the actual file. Only
+  fall back to serving a `.wasm` from jsDelivr's CDN if a future dependency
+  swap ever produces one that actually exceeds 25 MiB.
 - No new dependencies without asking. Check bundle impact first.
 
 ## Conventions
 
 - Tool pages: static HTML shell + one hydrated island. Never a full-page island.
-- Every calculator uses the shared `<Calculator>` component in `src/components/` (not built yet — see status above).
-- Lazy-load the OCCT kernel only after the user selects a file.
+- Every calculator uses the shared `<Calculator>` component in `src/components/`.
+- Lazy-load the OCCT kernel only after the user selects a file — the three.js
+  scene itself can initialize eagerly (no WASM cost), only the worker/kernel
+  waits for a file.
 - Run `npm run build` before saying a change is done.
 - Routes are folders with `index.astro` (e.g. `src/pages/about/index.astro`), not flat files.
 - Every tool/calculator page should eventually link to at least one guide, and every guide back to at least one tool — this internal-linking loop is what makes the site rankable. Not enforced yet since no guide content exists.
 - Every calculator's unit kind must round-trip: converting a value metric→imperial→metric must return the original number (see `convertDisplay` in `units.ts`). Verify new kinds with a quick round-trip check before shipping.
+- Don't trust a dependency's README for its exact API surface — verify against the actually-installed version (e.g. by running it directly with Node) before writing code against it. occt-import-js's published README describes a newer API than what's on npm.

@@ -82,7 +82,7 @@ Position the site as a tool platform, not a services brochure: "Free browser CAD
 | 10 | Freelance conversion funnel |
 | 11 | Authority building & ongoing cadence |
 
-> **Status: Stages 0–4 are built.** Stage 5 onward has not started. See `CLAUDE.md` for current architecture and hard constraints.
+> **Status: Stages 0–5 are built.** Stage 6 onward has not started. See `CLAUDE.md` for current architecture and hard constraints.
 
 ### Stage 0 — Foundations
 

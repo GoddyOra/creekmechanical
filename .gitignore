@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# copied at build time by scripts/copy-wasm-assets.mjs — see CLAUDE.md
+public/wasm/
 
 # dependencies
 node_modules/

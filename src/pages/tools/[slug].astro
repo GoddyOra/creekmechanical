@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Viewer from '../../components/Viewer.astro';
+import { viewerTools } from '../../lib/viewer/registry';
+
+export function getStaticPaths() {
+  return viewerTools.map((def) => ({ params: { slug: def.slug }, props: { def } }));
+}
+
+const { def } = Astro.props;
+---
+
+<BaseLayout title={def.title} description={def.shortDescription}>
+  <article class="tool-page wrap">
+    <h1>{def.title}</h1>
+    <p class="tool-intro">{def.intro}</p>
+
+    <Viewer def={def} />
+
+    <p class="tool-footnote">
+      Every part of this tool — reading the file, rendering it, and
+      exporting a converted copy — runs locally in your browser. See our
+      <a href="/privacy/">Privacy</a> page for details, and our
+      <a href="/terms/">Terms</a> for what this tool is (and isn't) a
+      substitute for.
+    </p>
+  </article>
+</BaseLayout>

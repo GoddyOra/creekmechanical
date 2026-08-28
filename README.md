@@ -11,15 +11,12 @@ assessment and 11-stage roadmap.
 
 ## Status
 
-Stages 0–4 are built: positioning pages (About, Privacy, Terms, Contact),
-a calculator engine with its first wave of 10 calculators (gear ratio,
-shaft torque, beam deflection, bolt torque, bearing life, pipe flow,
-column buckling, thermal expansion, factor of safety, spring rate), and a
-reference data library of 8 sortable/filterable tables (tap drill and
-clearance holes, bolt torque specs, thread specifications, material
-properties, hardness conversion, surface finish, drill gauge sizes, sheet
-metal gauge sizes). `/tools/`, `/guides/`, and `/services/` are still
-placeholders; the WASM CAD tools have not started. See
+Stages 0–5 are built: positioning pages (About, Privacy, Terms, Contact),
+a calculator engine with its first wave of 10 calculators, a reference
+data library of 8 sortable/filterable tables, and a browser-only STEP/IGES/BREP
+viewer (WASM CAD kernel + three.js) with STL/OBJ/3MF export across 5
+tool pages. `/guides/` and `/services/` are still placeholders; the CAD
+compatibility checker and parametric part generator have not started. See
 [`CLAUDE.md`](CLAUDE.md) for the durable constraints and conventions this
 project follows going forward.
 

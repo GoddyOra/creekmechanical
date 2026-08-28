@@ -1,0 +1,424 @@
+---
+import type { ViewerToolDef } from '../lib/viewer/registry';
+
+interface Props {
+  def: ViewerToolDef;
+}
+
+const { def } = Astro.props;
+---
+
+<div class="viewer" data-viewer data-accept={def.acceptExtensions} data-highlight={def.highlightExport ?? ''}>
+  <div class="viewer-badge">🔒 Processed entirely in your browser — nothing is uploaded</div>
+
+  <div class="viewer-upload">
+    <label class="viewer-file-btn">
+      Choose file
+      <input type="file" data-file-input accept={def.acceptExtensions} />
+    </label>
+    <span class="viewer-filename" data-filename>No file selected</span>
+  </div>
+
+  <p class="viewer-error" data-error hidden></p>
+  <p class="viewer-loading" data-loading hidden>Parsing file…</p>
+
+  <div class="viewer-stage" data-stage>
+    <canvas data-canvas></canvas>
+  </div>
+
+  <div class="viewer-toolbar" data-toolbar>
+    <label class="viewer-toggle">
+      <input type="checkbox" data-wireframe-toggle disabled />
+      Wireframe
+    </label>
+    <label class="viewer-toggle">
+      <input type="checkbox" data-section-toggle disabled />
+      Section view
+    </label>
+    <input type="range" data-section-slider disabled />
+    <button type="button" data-measure-toggle disabled>Measure</button>
+    <button type="button" data-measure-clear disabled>Clear measurement</button>
+    <button type="button" data-reset-view disabled>Reset view</button>
+    <div class="unit-toggle" role="group" aria-label="Unit system">
+      <button type="button" data-unit-btn="mm" class="active">mm</button>
+      <button type="button" data-unit-btn="in">in</button>
+    </div>
+  </div>
+
+  <div class="viewer-readout" data-readout hidden>
+    <div class="result-row">
+      <span class="result-label">Bounding box (X × Y × Z)</span>
+      <span class="result-value" data-bbox-readout>—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Measured distance</span>
+      <span class="result-value" data-measure-readout>—</span>
+    </div>
+  </div>
+
+  <div class="viewer-exports">
+    <button type="button" class="ref-btn" data-export="stl" disabled>Download STL</button>
+    <button type="button" class="ref-btn" data-export="obj" disabled>Download OBJ</button>
+    <button type="button" class="ref-btn" data-export="3mf" disabled>Download 3MF</button>
+  </div>
+</div>
+
+<script>
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+  import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
+  import { buildGroupFromMeshes, getBoundingBox } from '../lib/viewer/mesh-utils';
+  import { exportGroupTo3mf } from '../lib/viewer/threemf';
+  import { detectFormat } from '../lib/viewer/format';
+  import { convertDisplay } from '../lib/calculators/units';
+  import type { ParseRequest, ParseResponse } from '../lib/viewer/parse-worker';
+  import type { OcctMesh } from '../lib/viewer/occt-types';
+
+  const root = document.querySelector<HTMLElement>('[data-viewer]')!;
+  const fileInput = root.querySelector<HTMLInputElement>('[data-file-input]')!;
+  const filenameEl = root.querySelector<HTMLElement>('[data-filename]')!;
+  const errorEl = root.querySelector<HTMLElement>('[data-error]')!;
+  const loadingEl = root.querySelector<HTMLElement>('[data-loading]')!;
+  const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-canvas]')!;
+  const readoutEl = root.querySelector<HTMLElement>('[data-readout]')!;
+  const bboxReadoutEl = root.querySelector<HTMLElement>('[data-bbox-readout]')!;
+  const measureReadoutEl = root.querySelector<HTMLElement>('[data-measure-readout]')!;
+  const wireframeToggle = root.querySelector<HTMLInputElement>('[data-wireframe-toggle]')!;
+  const sectionToggle = root.querySelector<HTMLInputElement>('[data-section-toggle]')!;
+  const sectionSlider = root.querySelector<HTMLInputElement>('[data-section-slider]')!;
+  const measureToggleBtn = root.querySelector<HTMLButtonElement>('[data-measure-toggle]')!;
+  const measureClearBtn = root.querySelector<HTMLButtonElement>('[data-measure-clear]')!;
+  const resetViewBtn = root.querySelector<HTMLButtonElement>('[data-reset-view]')!;
+  const exportButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-export]'));
+
+  const highlight = root.dataset.highlight;
+  if (highlight) {
+    exportButtons.find((b) => b.dataset.export === highlight)?.classList.add('highlight');
+  }
+
+  // ---- three.js scene (initializes immediately — cheap, no WASM involved) ----
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf7f8fa);
+
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+  camera.position.set(150, 150, 150);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  scene.add(new THREE.AmbientLight(0x666666));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  keyLight.position.set(1, 1.5, 1);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  fillLight.position.set(-1, -0.5, -1);
+  scene.add(fillLight);
+
+  function resizeRenderer() {
+    const width = stageEl.clientWidth;
+    const height = stageEl.clientHeight;
+    if (width === 0 || height === 0) return;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resizeRenderer).observe(stageEl);
+  resizeRenderer();
+
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+  });
+
+  // ---- model state ----
+  let currentGroup: THREE.Group | null = null;
+  let currentFileBaseName = 'model';
+  let worker: Worker | null = null;
+  let unitSystem: 'metric' | 'imperial' = 'metric';
+  let lastBoundingBox: THREE.Box3 | null = null;
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function clearError() {
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+  }
+
+  function disposeMaterial(material: THREE.Material | THREE.Material[]) {
+    const materials = Array.isArray(material) ? material : [material];
+    for (const m of materials) m.dispose();
+  }
+
+  function clearModel() {
+    if (currentGroup) {
+      currentGroup.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          disposeMaterial(obj.material);
+        }
+      });
+      scene.remove(currentGroup);
+      currentGroup = null;
+    }
+    clearMeasurement();
+    setToolbarEnabled(false);
+    readoutEl.hidden = true;
+    lastBoundingBox = null;
+  }
+
+  function setToolbarEnabled(enabled: boolean) {
+    for (const el of [wireframeToggle, sectionToggle, sectionSlider, measureToggleBtn, measureClearBtn, resetViewBtn]) {
+      el.disabled = !enabled;
+    }
+    for (const btn of exportButtons) btn.disabled = !enabled;
+    if (!enabled) {
+      wireframeToggle.checked = false;
+      sectionToggle.checked = false;
+      measureModeEnabled = false;
+      measureToggleBtn.classList.remove('active');
+    }
+  }
+
+  // ---- format detection + worker orchestration ----
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    const format = detectFormat(file.name);
+    clearError();
+    if (!format) {
+      showError('Unsupported file type. Please choose a .step, .stp, .iges, .igs, or .brep file.');
+      return;
+    }
+
+    filenameEl.textContent = file.name;
+    currentFileBaseName = file.name.replace(/\.[^./]+$/, '') || 'model';
+    clearModel();
+    loadingEl.hidden = false;
+
+    if (!worker) {
+      worker = new Worker(new URL('../lib/viewer/parse-worker.ts', import.meta.url), { type: 'module' });
+    }
+
+    worker.onmessage = (event: MessageEvent<ParseResponse>) => {
+      loadingEl.hidden = true;
+      if (event.data.type === 'error') {
+        showError(event.data.message);
+        return;
+      }
+      onModelParsed(event.data.meshes);
+    };
+    worker.onerror = () => {
+      loadingEl.hidden = true;
+      showError('The parser crashed on this file. It may be too large or malformed.');
+    };
+
+    const buffer = await file.arrayBuffer();
+    const request: ParseRequest = { fileName: file.name, buffer, format };
+    worker.postMessage(request, [buffer]);
+  });
+
+  function onModelParsed(meshes: OcctMesh[]) {
+    const group = buildGroupFromMeshes(meshes);
+    scene.add(group);
+    currentGroup = group;
+    setToolbarEnabled(true);
+    fitCameraToObject(group);
+    updateBoundingBoxReadout();
+    setupSectionSlider();
+  }
+
+  // ---- camera fit ----
+  function fitCameraToObject(object: THREE.Object3D, offset = 1.6) {
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 1);
+    const fov = (camera.fov * Math.PI) / 180;
+    const distance = (maxDim / 2 / Math.tan(fov / 2)) * offset;
+    const direction = new THREE.Vector3(1, 0.8, 1).normalize();
+    camera.position.copy(center).addScaledVector(direction, distance);
+    camera.near = distance / 100;
+    camera.far = distance * 100;
+    camera.updateProjectionMatrix();
+    controls.target.copy(center);
+    controls.update();
+  }
+
+  resetViewBtn.addEventListener('click', () => {
+    if (currentGroup) fitCameraToObject(currentGroup);
+  });
+
+  // ---- wireframe ----
+  wireframeToggle.addEventListener('change', () => {
+    if (!currentGroup) return;
+    currentGroup.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of materials) {
+        if (m instanceof THREE.MeshStandardMaterial) m.wireframe = wireframeToggle.checked;
+      }
+    });
+  });
+
+  // ---- section view ----
+  // Clip plane normal (0,-1,0): a point stays visible while -y + constant >= 0,
+  // i.e. y <= constant — raising the slider reveals more of the model from
+  // the bottom up.
+  const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+
+  function setupSectionSlider() {
+    if (!currentGroup) return;
+    const box = new THREE.Box3().setFromObject(currentGroup);
+    sectionSlider.min = String(box.min.y);
+    sectionSlider.max = String(box.max.y);
+    sectionSlider.step = String((box.max.y - box.min.y) / 200 || 0.01);
+    sectionSlider.value = String(box.max.y);
+    clipPlane.constant = box.max.y;
+  }
+
+  function updateClipping() {
+    renderer.localClippingEnabled = sectionToggle.checked;
+    const planes = sectionToggle.checked ? [clipPlane] : [];
+    currentGroup?.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of materials) m.clippingPlanes = planes;
+    });
+  }
+
+  sectionToggle.addEventListener('change', updateClipping);
+  sectionSlider.addEventListener('input', () => {
+    clipPlane.constant = parseFloat(sectionSlider.value);
+    updateClipping();
+  });
+
+  // ---- measurement ----
+  let measureModeEnabled = false;
+  let measurePoints: THREE.Vector3[] = [];
+  let measureMarkers: THREE.Mesh[] = [];
+  let measureLine: THREE.Line | null = null;
+  const raycaster = new THREE.Raycaster();
+  const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xb5651d });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xb5651d });
+
+  measureToggleBtn.addEventListener('click', () => {
+    measureModeEnabled = !measureModeEnabled;
+    measureToggleBtn.classList.toggle('active', measureModeEnabled);
+  });
+
+  measureClearBtn.addEventListener('click', clearMeasurement);
+
+  function clearMeasurement() {
+    for (const marker of measureMarkers) {
+      scene.remove(marker);
+      marker.geometry.dispose();
+    }
+    measureMarkers = [];
+    measurePoints = [];
+    if (measureLine) {
+      scene.remove(measureLine);
+      measureLine.geometry.dispose();
+      measureLine = null;
+    }
+    measureReadoutEl.textContent = '—';
+  }
+
+  canvas.addEventListener('pointerdown', (event) => {
+    if (!measureModeEnabled || !currentGroup) return;
+    const rect = canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObject(currentGroup, true);
+    if (hits.length === 0) return;
+
+    if (measurePoints.length >= 2) clearMeasurement();
+
+    const point = hits[0].point.clone();
+    const box = lastBoundingBox ?? new THREE.Box3().setFromObject(currentGroup);
+    const markerRadius = Math.max(box.getSize(new THREE.Vector3()).length() * 0.006, 0.05);
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(markerRadius, 12, 12), markerMaterial);
+    marker.position.copy(point);
+    scene.add(marker);
+    measureMarkers.push(marker);
+    measurePoints.push(point);
+
+    if (measurePoints.length === 2) {
+      const [a, b] = measurePoints;
+      const geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
+      measureLine = new THREE.Line(geometry, lineMaterial);
+      scene.add(measureLine);
+      updateMeasureReadout(a.distanceTo(b));
+    }
+  });
+
+  function updateMeasureReadout(distanceMm: number) {
+    measureReadoutEl.textContent = formatLength(distanceMm);
+  }
+
+  // ---- bounding box readout + unit toggle ----
+  function formatLength(mm: number): string {
+    const value = unitSystem === 'metric' ? mm : convertDisplay('lengthSmall', 'metric', 'imperial', mm);
+    const unit = unitSystem === 'metric' ? 'mm' : 'in';
+    return `${value.toFixed(2)} ${unit}`;
+  }
+
+  function updateBoundingBoxReadout() {
+    if (!currentGroup) return;
+    lastBoundingBox = getBoundingBox(currentGroup);
+    const size = lastBoundingBox.getSize(new THREE.Vector3());
+    bboxReadoutEl.textContent = `${formatLength(size.x)} × ${formatLength(size.y)} × ${formatLength(size.z)}`;
+    readoutEl.hidden = false;
+    if (measurePoints.length === 2) {
+      updateMeasureReadout(measurePoints[0].distanceTo(measurePoints[1]));
+    }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('[data-unit-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.unitBtn as 'mm' | 'in';
+      unitSystem = next === 'mm' ? 'metric' : 'imperial';
+      root.querySelectorAll<HTMLButtonElement>('[data-unit-btn]').forEach((b) => b.classList.toggle('active', b === btn));
+      updateBoundingBoxReadout();
+    });
+  });
+
+  // ---- export ----
+  function downloadBlob(data: BlobPart, mimeType: string, extension: string) {
+    const blob = new Blob([data], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentFileBaseName}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!currentGroup) return;
+      const format = btn.dataset.export;
+      if (format === 'stl') {
+        const data = new STLExporter().parse(currentGroup, { binary: true }) as ArrayBuffer;
+        downloadBlob(data, 'model/stl', 'stl');
+      } else if (format === 'obj') {
+        const data = new OBJExporter().parse(currentGroup);
+        downloadBlob(data, 'text/plain', 'obj');
+      } else if (format === '3mf') {
+        const data = exportGroupTo3mf(currentGroup);
+        downloadBlob(data, 'model/3mf', '3mf');
+      }
+    });
+  });
+</script>

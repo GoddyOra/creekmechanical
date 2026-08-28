@@ -1,19 +1,28 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { viewerTools } from '../../lib/viewer/registry';
 ---
 
 <BaseLayout
   title="Tools"
-  description="Browser-based CAD viewers, converters, and geometry utilities — coming soon to Creek Mechanical."
+  description="Browser-based CAD tools — view and convert STEP, IGES, and BREP files to STL, OBJ, and 3MF. Nothing is uploaded."
 >
-  <section class="coming-soon wrap">
-    <span class="badge">Coming soon</span>
+  <section class="hero wrap">
     <h1>Tools</h1>
     <p>
-      This section will hold browser-based CAD tools: a STEP/IGES viewer
-      with STL/OBJ/3MF export, and a CAD compatibility checker that reports
-      what will break when a file is opened downstream. Every tool will run
-      entirely client-side — nothing you open here is ever uploaded.
+      Browser-based CAD viewers and converters. Every tool runs entirely
+      client-side — your files never leave your computer.
     </p>
+  </section>
+
+  <section class="wrap">
+    <div class="hub-grid">
+      {viewerTools.map((t) => (
+        <a class="hub-card" href={`/tools/${t.slug}/`}>
+          <h3>{t.title}</h3>
+          <p>{t.shortDescription}</p>
+        </a>
+      ))}
+    </div>
   </section>
 </BaseLayout>
