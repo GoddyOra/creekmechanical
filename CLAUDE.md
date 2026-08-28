@@ -19,12 +19,13 @@ roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Current architecture status
 
-Stages 0–5 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+Stages 0–6 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
 pages (About, Privacy, Terms, Contact), the calculator engine (10
-calculators), the reference data library (8 tables), and the STEP/IGES
-viewer/converter. `/guides/` and `/services/` are still "coming soon"
-placeholders. There is no CAD compatibility checker, parametric generator,
-or content collections yet. Don't assume any of that is already wired up.
+calculators), the reference data library (8 tables), the STEP/IGES
+viewer/converter, and the CAD compatibility checker. `/guides/` and
+`/services/` are still "coming soon" placeholders. There is no parametric
+part generator, tolerance stack-up tool, or content collections yet. Don't
+assume any of that is already wired up.
 
 ### Calculator engine (Stage 3)
 
@@ -115,6 +116,53 @@ directly with Node, not just trusting its README — the README on GitHub
   renderer, `OrbitControls`) initializes eagerly on page load (cheap, no
   WASM); the worker/WASM kernel only spins up on file selection.
 - `src/pages/tools/[slug].astro` — one dynamic route over the registry.
+
+### CAD compatibility checker (Stage 6)
+
+Reuses `parse-worker.ts` unchanged (no new dependencies) — the worker now
+also returns `root` (the assembly tree), not just `meshes`, since the Stage
+5 Viewer never needed it. This is the highest-stakes tool on the site: it
+tells a visitor authoritatively "your file has a problem," so a false
+positive is worse than a normal bug. Every non-trivial algorithm here was
+verified against real geometry (synthetic known-good/known-broken cases
+plus real multi-part assemblies) before being written — see git history
+for the specifics if you're touching this code.
+
+- `src/lib/checker/mesh-analysis.ts` — manifoldness/orientation/sliver
+  checks. **The critical thing to know before touching this file**:
+  occt-import-js does not share vertices between adjacent faces (a 6-face
+  cube comes back with 24 vertices, not 8). Edge-adjacency analysis keyed
+  by raw vertex *index* will misreport every inter-face boundary as "open"
+  on every valid watertight solid. `weldVertices()` (position-based, at an
+  adaptive tolerance = `max(1e-6, boundingBoxDiagonal × 1e-5)`) must run
+  before any edge-adjacency check. If you ever see this tool reporting open
+  edges on files that are obviously fine, this is the first thing to check.
+- `src/lib/checker/units-scan.ts` — reads the *declared* unit straight from
+  the file's raw bytes (regex over STEP's `SI_UNIT`/`CONVERSION_BASED_UNIT`
+  entities, or IGES's Hollerith-encoded Global Section) since occt-import-js
+  only lets you *request* an output unit, never tells you what was declared.
+  **Also non-obvious**: a `CONVERSION_BASED_UNIT` (e.g. INCH) is defined
+  relative to a plain `SI_UNIT` (e.g. millimeter) that sits right next to it
+  in the file as its conversion basis — that basis unit is not an
+  independently-used unit, and counting it as one produces a false "mixed
+  units" positive on every inch-based file. The code checks for
+  `CONVERSION_BASED_UNIT` first and skips the `SI_UNIT` check in the same
+  window for exactly this reason.
+- `src/lib/checker/report.ts` — walks the assembly tree, runs
+  `mesh-analysis.ts` over every mesh, combines with the units scan, and
+  generates the plain-language findings (each flagged with `cta: true` when
+  it should carry a "we can fix this for you" link to `/services/`, per the
+  doc). Also formats the downloadable plain-text report.
+- `src/components/Checker.astro` — deliberately has **no `three` import** —
+  this page only needs the WASM kernel + analysis code, so its bundle
+  (~10 KB) is a small fraction of the Viewer pages' (~550 KB, mostly
+  three.js). Keep it that way; don't pull in the viewer for a "preview" —
+  link to `/tools/step-iges-viewer/` instead if a 3D view is wanted.
+- Known limitation, by design not by bug: a multi-file STEP assembly that
+  references sibling part files by external link (rather than embedding
+  everything in one file) parses to an empty tree — occt-import-js only
+  ever sees the one file it's given. The report says so rather than
+  claiming "0 parts" as if that were meaningful.
 
 ## Hard constraints
 

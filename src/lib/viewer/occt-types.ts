@@ -14,9 +14,15 @@ export interface OcctMesh {
   index: { array: number[] };
 }
 
+export interface OcctNode {
+  name: string;
+  meshes: number[];
+  children: OcctNode[];
+}
+
 export interface OcctReadResult {
   success: boolean;
-  root: { name: string; meshes: number[]; children: unknown[] };
+  root: OcctNode;
   meshes: OcctMesh[];
 }
 

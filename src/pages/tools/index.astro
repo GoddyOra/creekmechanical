@@ -17,6 +17,10 @@ import { viewerTools } from '../../lib/viewer/registry';
 
   <section class="wrap">
     <div class="hub-grid">
+      <a class="hub-card" href="/tools/cad-compatibility-checker/">
+        <h3>CAD Compatibility Checker</h3>
+        <p>Upload a STEP, IGES, or BREP file and get a health report: unit consistency, open shells, non-manifold edges, and assembly structure.</p>
+      </a>
       {viewerTools.map((t) => (
         <a class="hub-card" href={`/tools/${t.slug}/`}>
           <h3>{t.title}</h3>

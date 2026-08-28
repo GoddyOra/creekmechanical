@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Checker from '../../../components/Checker.astro';
+---
+
+<BaseLayout
+  title="CAD Compatibility Checker"
+  description="Upload a STEP, IGES, or BREP file and get a health report: unit consistency, open shells, non-manifold edges, face orientation, and assembly structure. Nothing is uploaded."
+>
+  <article class="tool-page wrap">
+    <h1>CAD Compatibility Checker</h1>
+    <p class="tool-intro">
+      Upload a STEP, IGES, or BREP file to check for common problems before
+      it causes trouble downstream: inconsistent units, open (non-watertight)
+      shells, non-manifold edges, inconsistent face orientation, and
+      degenerate geometry in the tessellation — plus a summary of the
+      file's assembly structure.
+    </p>
+
+    <Checker />
+
+    <div class="notice">
+      This tool checks what a browser-based mesh importer can see: unit
+      declarations, edge/face manifoldness, orientation consistency, and
+      tessellation quality. It does not have access to full CAD-kernel
+      B-Rep topology (surface/curve types, true geometric tolerance
+      analysis) — it's a fast first pass, not a substitute for opening the
+      file in your CAD system.
+    </div>
+
+    <p class="tool-footnote">
+      Every check runs locally in your browser — nothing you upload here is
+      sent anywhere. See our <a href="/privacy/">Privacy</a> page for
+      details, and our <a href="/terms/">Terms</a> for what this tool is
+      (and isn't) a substitute for.
+    </p>
+  </article>
+</BaseLayout>

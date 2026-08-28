@@ -1,7 +1,7 @@
 // Runs entirely off the main thread so large files never freeze the tab.
 // Only ever spawned after the user selects a file — see Viewer.astro.
 import occtimportjs from 'occt-import-js';
-import type { CadFormat, OcctModule, OcctMesh } from './occt-types';
+import type { CadFormat, OcctModule, OcctMesh, OcctNode } from './occt-types';
 
 export interface ParseRequest {
   fileName: string;
@@ -10,7 +10,7 @@ export interface ParseRequest {
 }
 
 export type ParseResponse =
-  | { type: 'result'; meshes: OcctMesh[] }
+  | { type: 'result'; meshes: OcctMesh[]; root: OcctNode }
   | { type: 'error'; message: string };
 
 let modulePromise: Promise<OcctModule> | null = null;
@@ -49,7 +49,7 @@ self.onmessage = async (event: MessageEvent<ParseRequest>) => {
       return;
     }
 
-    const response: ParseResponse = { type: 'result', meshes: result.meshes };
+    const response: ParseResponse = { type: 'result', meshes: result.meshes, root: result.root };
     self.postMessage(response);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error while parsing the file.';
