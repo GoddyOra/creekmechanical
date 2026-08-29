@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Generator from '../../../components/Generator.astro';
+import { getGenerator } from '../../../lib/generators/registry';
+
+const def = getGenerator('spur-gear-generator')!;
+---
+
+<BaseLayout title={def.title} description={def.shortDescription}>
+  <article class="tool-page wrap">
+    <h1>{def.title}</h1>
+    <p class="tool-intro">{def.intro}</p>
+
+    <Generator def={def} />
+
+    <p class="tool-footnote">
+      Every part of this tool — building the geometry and exporting the
+      STL — runs locally in your browser. See our <a href="/calculators/">calculators</a>
+      for shaft torque, bearing life, and other gear-adjacent math, and our
+      <a href="/terms/">Terms</a> for what this tool is (and isn't) a
+      substitute for.
+    </p>
+  </article>
+</BaseLayout>

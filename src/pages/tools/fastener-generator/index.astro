@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Generator from '../../../components/Generator.astro';
+import { getGenerator } from '../../../lib/generators/registry';
+
+const def = getGenerator('fastener-generator')!;
+---
+
+<BaseLayout title={def.title} description={def.shortDescription}>
+  <article class="tool-page wrap">
+    <h1>{def.title}</h1>
+    <p class="tool-intro">{def.intro}</p>
+
+    <Generator def={def} />
+
+    <p class="tool-footnote">
+      Every part of this tool — building the geometry and exporting the
+      STL — runs locally in your browser. See our
+      <a href="/reference/thread-specifications/">thread specifications reference</a>
+      and <a href="/reference/bolt-torque-specifications/">bolt torque reference</a>,
+      and our <a href="/terms/">Terms</a> for what this tool is (and isn't)
+      a substitute for.
+    </p>
+  </article>
+</BaseLayout>

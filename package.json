@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
+    "@jscad/modeling": "^2.13.0",
     "astro": "^7.2.6",
     "occt-import-js": "^0.0.23",
     "three": "^0.185.1"

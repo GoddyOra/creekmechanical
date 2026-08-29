@@ -1,0 +1,179 @@
+---
+import type { GeneratorDef } from '../lib/generators/registry';
+
+interface Props {
+  def: GeneratorDef;
+}
+
+const { def } = Astro.props;
+---
+
+<div class="generator viewer" data-generator data-slug={def.slug} data-fields={JSON.stringify(def.fields)}>
+  <div class="viewer-badge">🔒 Generated entirely in your browser — nothing is uploaded</div>
+
+  {def.notice && <div class="notice">{def.notice}</div>}
+
+  <div class="calc-grid">
+    <div class="calc-inputs" data-inputs>
+      {def.fields.map((f) => (
+        <div class="field" data-field-row={f.id}>
+          <label for={`field-${f.id}`}>{f.label}</label>
+          {f.type === 'select' ? (
+            <select id={`field-${f.id}`} data-field={f.id}>
+              {f.options?.map((opt) => (
+                <option value={opt.value} selected={opt.value === f.default}>{opt.label}</option>
+              ))}
+            </select>
+          ) : (
+            <div class="field-input">
+              <input
+                id={`field-${f.id}`}
+                data-field={f.id}
+                type="number"
+                value={f.default}
+                min={f.min}
+                step={f.step ?? 'any'}
+              />
+              <span class="field-unit">{f.unit}</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <div class="viewer-stage" data-stage>
+      <canvas data-canvas></canvas>
+    </div>
+  </div>
+
+  <p class="viewer-error" data-error hidden></p>
+
+  <div class="viewer-exports">
+    <button type="button" class="ref-btn" data-download-stl>Download STL</button>
+    <button type="button" class="ref-btn" data-permalink>Copy link</button>
+  </div>
+</div>
+
+<script>
+  import * as THREE from 'three';
+  import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+  import { createViewerScene } from '../lib/viewer/scene-setup';
+  import { geom3ToThreeGeometry } from '../lib/generators/jscad-utils';
+  import { generatorFns } from '../lib/generators/generate';
+  import type { GeneratorField } from '../lib/generators/registry';
+
+  const root = document.querySelector<HTMLElement>('[data-generator]')!;
+  const slug = root.dataset.slug!;
+  const fields: GeneratorField[] = JSON.parse(root.dataset.fields!);
+  const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-canvas]')!;
+  const errorEl = root.querySelector<HTMLElement>('[data-error]')!;
+  const downloadBtn = root.querySelector<HTMLButtonElement>('[data-download-stl]')!;
+  const permalinkBtn = root.querySelector<HTMLButtonElement>('[data-permalink]')!;
+
+  const generate = generatorFns[slug];
+
+  const { scene, fitCameraToObject } = createViewerScene(canvas, stageEl);
+
+  const material = new THREE.MeshStandardMaterial({ color: 0x8fa8c2, metalness: 0.15, roughness: 0.55, side: THREE.DoubleSide });
+  let currentMesh: THREE.Mesh | null = null;
+
+  function getInputEl(id: string): HTMLInputElement | HTMLSelectElement {
+    return root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${id}"]`)!;
+  }
+
+  function readParams(): Record<string, number> {
+    const params: Record<string, number> = {};
+    for (const f of fields) {
+      params[f.id] = parseFloat(getInputEl(f.id).value);
+    }
+    return params;
+  }
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function clearError() {
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+  }
+
+  function updatePermalink(params: Record<string, number>) {
+    const search = new URLSearchParams();
+    for (const [id, value] of Object.entries(params)) {
+      if (Number.isFinite(value)) search.set(id, String(value));
+    }
+    history.replaceState(null, '', `${location.pathname}?${search.toString()}`);
+  }
+
+  function regenerate() {
+    const params = readParams();
+    if (Object.values(params).some((v) => !Number.isFinite(v))) {
+      showError('Enter a valid number for every field.');
+      return;
+    }
+
+    try {
+      const geom = generate(params);
+      const geometry = geom3ToThreeGeometry(geom);
+
+      if (currentMesh) {
+        scene.remove(currentMesh);
+        currentMesh.geometry.dispose();
+      }
+      currentMesh = new THREE.Mesh(geometry, material);
+      scene.add(currentMesh);
+      fitCameraToObject(currentMesh);
+      clearError();
+      updatePermalink(params);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not generate this shape with the current parameters.';
+      showError(message);
+    }
+  }
+
+  function applyFromURL() {
+    const search = new URLSearchParams(location.search);
+    for (const f of fields) {
+      const value = search.get(f.id);
+      if (value === null) continue;
+      const num = parseFloat(value);
+      if (Number.isFinite(num)) getInputEl(f.id).value = String(num);
+    }
+  }
+
+  for (const f of fields) {
+    const el = getInputEl(f.id);
+    el.addEventListener('change', regenerate);
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    if (!currentMesh) return;
+    const data = new STLExporter().parse(currentMesh, { binary: true }) as ArrayBuffer;
+    const blob = new Blob([data], { type: 'model/stl' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slug}.stl`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  permalinkBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+    } catch {
+      // Clipboard API unavailable — the URL is already live via replaceState.
+    }
+    const original = permalinkBtn.textContent;
+    permalinkBtn.textContent = 'Copied!';
+    setTimeout(() => {
+      permalinkBtn.textContent = original;
+    }, 1500);
+  });
+
+  applyFromURL();
+  regenerate();
+</script>

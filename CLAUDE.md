@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 creekmechanical.com — a static Astro site. Zero-budget: no paid services,
 no server compute. It will grow into a platform of browser-only mechanical
 engineering / CAD tools (calculators, reference data, a WASM STEP/IGES
-viewer, a CAD compatibility checker). Full rationale and the 11-stage
-roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
+viewer, a CAD compatibility checker, a parametric part generator). Full
+rationale and the 11-stage roadmap live in
+[`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Commands
 
@@ -19,13 +20,13 @@ roadmap live in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Current architecture status
 
-Stages 0–6 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+Stages 0–7 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
 pages (About, Privacy, Terms, Contact), the calculator engine (10
 calculators), the reference data library (8 tables), the STEP/IGES
-viewer/converter, and the CAD compatibility checker. `/guides/` and
-`/services/` are still "coming soon" placeholders. There is no parametric
-part generator, tolerance stack-up tool, or content collections yet. Don't
-assume any of that is already wired up.
+viewer/converter, the CAD compatibility checker, and the parametric part
+generator (6 generators). `/guides/` and `/services/` are still "coming
+soon" placeholders. There is no tolerance stack-up tool or content
+collections yet. Don't assume any of that is already wired up.
 
 ### Calculator engine (Stage 3)
 
@@ -163,6 +164,80 @@ for the specifics if you're touching this code.
   everything in one file) parses to an empty tree — occt-import-js only
   ever sees the one file it's given. The report says so rather than
   claiming "0 parts" as if that were meaningful.
+
+### Parametric part generator (Stage 7)
+
+Second real dependency: `@jscad/modeling` (CSG/geometry construction only —
+no JSCAD renderer or serializer packages; rendering reuses the existing
+three.js scene, STL export reuses `STLExporter` already used by the
+Viewer). Six generators: spur/helical gear, sprocket, flange,
+L-bracket/mounting-plate, enclosure, standard fasteners.
+
+**Two non-obvious `@jscad/modeling` gotchas, both confirmed empirically and
+both real bugs caught during development — know these before touching any
+generator code:**
+
+1. A `geom3` shape's raw `.polygons` does **not** reflect pending
+   `translate`/`rotate` transforms — they live in a separate `.transforms`
+   matrix and are only applied by `geometries.geom3.toPolygons()`. Boolean
+   op results (`union`/`subtract`) *do* bake the transform in, so this only
+   bites on a bare transform as the last step. **Always extract final
+   geometry via `toPolygons()`, never raw `.polygons`** (`jscad-utils.ts`'s
+   `geom3ToThreeGeometry` already does this correctly — reuse it, don't
+   re-read `.polygons` directly in new code). Boolean operations themselves
+   *do* correctly resolve a pending transform on their input operands —
+   verified separately — so it's safe to pass a freshly-translated shape
+   straight into `union`/`subtract`.
+2. `primitives.cylinder`/`cuboid`/etc. are centered at their `center`
+   option (default the origin) — i.e. a cylinder of `height: h` spans
+   `[-h/2, h/2]` by default. `extrudeLinear` and the custom twisted
+   extrusion in `gear.ts` instead span **`[0, height]`**. Mixing the two
+   without accounting for this silently misaligns bore holes and bolt
+   patterns (caught exactly this way while building the gear generator's
+   bore hole — see git history). Every generator that cuts a hole out of
+   an extruded body passes an explicit `center: [x, y, thickness/2]` (or
+   uses `boltCircleHoles`'s `centerZ` option) to compensate.
+
+Files:
+- `src/lib/generators/jscad-utils.ts` — `geom3ToThreeGeometry()` (the
+  `toPolygons()`-safe conversion, fan-triangulating each polygon — valid
+  since JSCAD's CSG output faces are always convex) and `boltCircleHoles()`
+  (shared N-holes-on-a-circle helper used by flange/l-bracket).
+- `src/lib/generators/gear.ts` — the involute tooth profile (derived from
+  first principles and verified — numerically and by rendering to SVG and
+  visually inspecting it, at both a normal and a low-tooth-count case —
+  before being trusted). Helical twist deliberately does **not** use
+  `extrudeHelical` (that sweeps a profile *around* the Z axis at an offset
+  radius — built for coil/screw-thread shapes, confirmed the wrong tool by
+  checking its z-range on a test case) — uses `extrudeFromSlices` with a
+  manual rotate+translate slice callback instead.
+- `src/lib/generators/sprocket.ts` — **a functional approximation, not an
+  ANSI B29.1/ISO 606 certified profile** (says so in the registry's
+  `notice` field, shown on the page). Exact pitch diameter, smooth
+  radius-vs-angle profile rather than a literal seating-curve arc
+  construction — an earlier hand-connected-arcs attempt produced a
+  self-intersecting mess; the smooth parametrization is what actually
+  shipped, and is guaranteed non-self-intersecting by construction.
+- `src/lib/generators/{flange,bracket,enclosure,fastener}.ts` — more
+  straightforward extrude/boolean shapes. `fastener.ts` is a **simplified,
+  unthreaded** hex bolt/nut (smooth shank/bore) — says so in its `notice`.
+- `src/lib/generators/registry.ts` — field metadata (same shape as
+  `CalculatorField`), plus an optional `notice` shown prominently on the
+  page for the sprocket/fastener scope disclaimers above.
+- `src/lib/generators/generate.ts` — slug → `generate()` function lookup,
+  mirroring `formulas.ts`'s pattern from the calculator engine.
+- `src/lib/viewer/scene-setup.ts` — three.js camera/renderer/controls/
+  lights/resize/animation-loop, extracted from `Viewer.astro` so
+  `Generator.astro` doesn't duplicate it. `Viewer.astro` now imports this
+  too rather than defining its own copy.
+- `src/components/Generator.astro` — the shared widget: parameter form →
+  `generate(params)` → `geom3ToThreeGeometry()` → live preview, "Download
+  STL" (`STLExporter`, reused from Stage 5), and a permalink (same URL-params
+  pattern as `Calculator.astro`).
+- Six pages under `src/pages/tools/*-generator/` — each its own dedicated
+  static page (not a shared dynamic route, unlike calculators/reference/
+  viewer) since the six generators' parameter sets don't share a uniform
+  shape the way those families did.
 
 ## Hard constraints
 

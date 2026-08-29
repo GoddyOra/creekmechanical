@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { viewerTools } from '../../lib/viewer/registry';
+import { generators } from '../../lib/generators/registry';
 ---
 
 <BaseLayout
@@ -25,6 +26,12 @@ import { viewerTools } from '../../lib/viewer/registry';
         <a class="hub-card" href={`/tools/${t.slug}/`}>
           <h3>{t.title}</h3>
           <p>{t.shortDescription}</p>
+        </a>
+      ))}
+      {generators.map((g) => (
+        <a class="hub-card" href={`/tools/${g.slug}/`}>
+          <h3>{g.title}</h3>
+          <p>{g.shortDescription}</p>
         </a>
       ))}
     </div>
