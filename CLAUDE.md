@@ -20,13 +20,16 @@ rationale and the 11-stage roadmap live in
 
 ## Current architecture status
 
-Stages 0–7 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
-pages (About, Privacy, Terms, Contact), the calculator engine (10
+Stages 0–8 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
+pages (About, Privacy, Terms, Contact), the calculator engine (11
 calculators), the reference data library (8 tables), the STEP/IGES
-viewer/converter, the CAD compatibility checker, and the parametric part
-generator (6 generators). `/guides/` and `/services/` are still "coming
-soon" placeholders. There is no tolerance stack-up tool or content
-collections yet. Don't assume any of that is already wired up.
+viewer/converter, the CAD compatibility checker, the parametric part
+generator (6 generators), and the tolerance stack-up / GD&T tools.
+`/guides/` and `/services/` are still "coming soon" placeholders. There
+are no content collections yet (Stage 9+). Don't assume any of that is
+already wired up. This was the last stage the original 11-stage roadmap
+scoped as pure product build-out — Stage 9 onward (SEO/schema, the
+freelance funnel, authority building) is a different kind of work.
 
 ### Calculator engine (Stage 3)
 
@@ -56,9 +59,12 @@ build output — the imports were left unresolved inside a non-module IIFE).
 Pass data from the server to the client script via `data-*` attributes and
 `JSON.parse`, as this component already does.
 
-Adding an 11th calculator: add one entry to `registry.ts` and one
+Adding another calculator: add one entry to `registry.ts` and one
 `compute()` function to `formulas.ts` (add any new unit kind to `units.ts`
-if needed) — no new page or component code required.
+if needed) — no new page or component code required. Currently 11
+calculators, the 11th being `true-position` (Stage 8's GD&T true position
+& bonus tolerance calculator — added here rather than as its own tool page
+since it's a fixed-field calculation that fits this engine exactly).
 
 ### Reference data library (Stage 4)
 
@@ -238,6 +244,37 @@ Files:
   static page (not a shared dynamic route, unlike calculators/reference/
   viewer) since the six generators' parameter sets don't share a uniform
   shape the way those families did.
+
+### Tolerance stack-up & GD&T (Stage 8)
+
+Pure JavaScript math — no new dependencies, no WASM. Two pieces:
+
+- `true-position` in the calculator engine (`registry.ts`/`formulas.ts`) —
+  true position and MMC/LMC bonus tolerance. `featureType` (0 = internal/
+  hole, 1 = external/shaft) flips which direction bonus tolerance grows,
+  since MMC means the *smallest* size for a hole but the *largest* size
+  for a shaft — get this backwards and bonus tolerance comes out negative
+  for every real part of that type.
+- `src/lib/stackup/math.ts` — `computeLinearStack` (worst-case = sum of
+  |tolerance|; RSS = root-sum-square), `runMonteCarlo` (Box-Muller normal
+  sampling, each contributor's sd = tolerance/3 — verified against 200k
+  samples before use), `computeCapability` (Cp/Cpk). **Cross-check if you
+  ever touch this file**: RSS tolerance and the Monte Carlo stddev×3
+  should agree to within ~0.1% for the same contributors — they're two
+  different derivations of the same quantity, and disagreement past normal
+  sampling noise means something broke.
+- `src/lib/stackup/report.ts` — plain-text report formatter (same
+  copy/download pattern as the compatibility checker's report).
+- `src/components/StackUp.astro` — dynamic add/remove contributor rows
+  (not the fixed-field `Calculator.astro` pattern, since a stack has a
+  variable number of contributors), a Monte Carlo histogram rendered as
+  inline SVG (bars colored by in-spec/out-of-spec status using the site's
+  existing `--color-primary`/`--color-accent` tokens, per the dataviz
+  skill's mark specs — 2px bar gap, rounded bar tops, native `<title>`
+  hover tooltips, no new charting dependency), and the same copy/download
+  report pattern as `Checker.astro`. No `three`/`@jscad` import — this
+  page's bundle is ~9 KB, ~60× smaller than the Generator pages', because
+  a stack-up table and a histogram don't need a 3D scene.
 
 ## Hard constraints
 

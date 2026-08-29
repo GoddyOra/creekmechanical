@@ -1,0 +1,388 @@
+<div class="stackup viewer" data-stackup>
+  <div class="stackup-toolbar">
+    <button type="button" class="ref-btn" data-add-row>+ Add contributor</button>
+    <span class="stackup-note">All values in mm</span>
+  </div>
+
+  <div class="stackup-table-wrap">
+    <table class="stackup-table">
+      <thead>
+        <tr>
+          <th>Contributor</th>
+          <th>Direction</th>
+          <th>Nominal</th>
+          <th>Tolerance (±)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody data-rows-body></tbody>
+    </table>
+  </div>
+
+  <div class="stackup-spec">
+    <label class="viewer-toggle">
+      <input type="checkbox" data-use-spec />
+      Compare against spec limits
+    </label>
+    <div class="field-input">
+      <input type="number" data-lsl step="any" disabled placeholder="LSL" />
+      <span class="field-unit">LSL</span>
+    </div>
+    <div class="field-input">
+      <input type="number" data-usl step="any" disabled placeholder="USL" />
+      <span class="field-unit">USL</span>
+    </div>
+  </div>
+
+  <button type="button" class="ref-btn highlight" data-calculate>Calculate</button>
+  <p class="viewer-error" data-error hidden></p>
+
+  <div class="stackup-results" data-results hidden>
+    <div class="result-row">
+      <span class="result-label">Nominal stack</span>
+      <span class="result-value" data-nominal>—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Worst-case</span>
+      <span class="result-value" data-worstcase>—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">RSS (statistical)</span>
+      <span class="result-value" data-rss>—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Monte Carlo mean / σ (100,000 samples)</span>
+      <span class="result-value" data-mc>—</span>
+    </div>
+    <div class="result-row" data-outofspec-row hidden>
+      <span class="result-label">Fraction out of spec</span>
+      <span class="result-value" data-outofspec>—</span>
+    </div>
+    <div class="result-row" data-cpk-row hidden>
+      <span class="result-label">Cp / Cpk</span>
+      <span class="result-value" data-cpk>—</span>
+    </div>
+  </div>
+
+  <div class="stackup-chart-wrap" data-chart-wrap hidden>
+    <svg data-chart viewBox="0 0 640 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Monte Carlo simulation histogram"></svg>
+  </div>
+
+  <div class="viewer-exports" data-export-row hidden>
+    <button type="button" class="ref-btn" data-copy-report>Copy report</button>
+    <button type="button" class="ref-btn" data-download-report>Download report</button>
+  </div>
+</div>
+
+<script>
+  import { computeLinearStack, runMonteCarlo, computeCapability, type Contributor, type MonteCarloResult } from '../lib/stackup/math';
+  import { formatStackUpReport } from '../lib/stackup/report';
+
+  const root = document.querySelector<HTMLElement>('[data-stackup]')!;
+  const rowsBody = root.querySelector<HTMLTableSectionElement>('[data-rows-body]')!;
+  const addRowBtn = root.querySelector<HTMLButtonElement>('[data-add-row]')!;
+  const useSpecCheckbox = root.querySelector<HTMLInputElement>('[data-use-spec]')!;
+  const lslInput = root.querySelector<HTMLInputElement>('[data-lsl]')!;
+  const uslInput = root.querySelector<HTMLInputElement>('[data-usl]')!;
+  const calculateBtn = root.querySelector<HTMLButtonElement>('[data-calculate]')!;
+  const errorEl = root.querySelector<HTMLElement>('[data-error]')!;
+  const resultsEl = root.querySelector<HTMLElement>('[data-results]')!;
+  const chartWrap = root.querySelector<HTMLElement>('[data-chart-wrap]')!;
+  const chartSvg = root.querySelector<SVGSVGElement>('[data-chart]')!;
+  const exportRow = root.querySelector<HTMLElement>('[data-export-row]')!;
+  const copyBtn = root.querySelector<HTMLButtonElement>('[data-copy-report]')!;
+  const downloadBtn = root.querySelector<HTMLButtonElement>('[data-download-report]')!;
+
+  let lastReportText = '';
+
+  function createRow(data: { name: string; nominal: number; tolerance: number; direction: 1 | -1 }): HTMLTableRowElement {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = data.name;
+    nameInput.placeholder = 'e.g. Bracket height';
+    nameInput.dataset.name = '';
+    nameTd.appendChild(nameInput);
+
+    const dirTd = document.createElement('td');
+    const dirSelect = document.createElement('select');
+    dirSelect.dataset.direction = '';
+    const plusOpt = new Option('+ (adds)', '1', data.direction === 1, data.direction === 1);
+    const minusOpt = new Option('− (subtracts)', '-1', data.direction === -1, data.direction === -1);
+    dirSelect.append(plusOpt, minusOpt);
+    dirTd.appendChild(dirSelect);
+
+    const nominalTd = document.createElement('td');
+    const nominalInput = document.createElement('input');
+    nominalInput.type = 'number';
+    nominalInput.step = 'any';
+    nominalInput.value = String(data.nominal);
+    nominalInput.dataset.nominal = '';
+    nominalTd.appendChild(nominalInput);
+
+    const toleranceTd = document.createElement('td');
+    const toleranceInput = document.createElement('input');
+    toleranceInput.type = 'number';
+    toleranceInput.step = 'any';
+    toleranceInput.min = '0';
+    toleranceInput.value = String(data.tolerance);
+    toleranceInput.dataset.tolerance = '';
+    toleranceTd.appendChild(toleranceInput);
+
+    const removeTd = document.createElement('td');
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'stackup-remove-row';
+    removeBtn.textContent = '×';
+    removeBtn.setAttribute('aria-label', 'Remove contributor');
+    removeBtn.addEventListener('click', () => tr.remove());
+    removeTd.appendChild(removeBtn);
+
+    tr.append(nameTd, dirTd, nominalTd, toleranceTd, removeTd);
+    return tr;
+  }
+
+  function addRow(data?: { name: string; nominal: number; tolerance: number; direction: 1 | -1 }) {
+    rowsBody.appendChild(
+      createRow(data ?? { name: '', nominal: 0, tolerance: 0, direction: 1 })
+    );
+  }
+
+  addRowBtn.addEventListener('click', () => addRow());
+
+  // Starter example: a simple 3-contributor gap stack.
+  addRow({ name: 'Housing depth', nominal: 25, tolerance: 0.05, direction: 1 });
+  addRow({ name: 'Shaft length', nominal: 20, tolerance: 0.04, direction: -1 });
+  addRow({ name: 'Retainer thickness', nominal: 3, tolerance: 0.02, direction: -1 });
+
+  useSpecCheckbox.addEventListener('change', () => {
+    lslInput.disabled = !useSpecCheckbox.checked;
+    uslInput.disabled = !useSpecCheckbox.checked;
+  });
+
+  function readContributors(): Contributor[] {
+    return Array.from(rowsBody.querySelectorAll('tr')).map((tr) => ({
+      name: (tr.querySelector('[data-name]') as HTMLInputElement).value.trim() || 'Unnamed',
+      nominal: parseFloat((tr.querySelector('[data-nominal]') as HTMLInputElement).value),
+      tolerance: Math.abs(parseFloat((tr.querySelector('[data-tolerance]') as HTMLInputElement).value)),
+      direction: parseInt((tr.querySelector('[data-direction]') as HTMLSelectElement).value, 10) as 1 | -1
+    }));
+  }
+
+  function fmt(v: number): string {
+    if (!Number.isFinite(v)) return '—';
+    return Number(v.toPrecision(5)).toString();
+  }
+
+  function renderHistogram(mc: MonteCarloResult, spec: { usl: number; lsl: number } | null) {
+    const svgNs = 'http://www.w3.org/2000/svg';
+    while (chartSvg.firstChild) chartSvg.removeChild(chartSvg.firstChild);
+
+    const width = 640;
+    const height = 280;
+    const marginLeft = 40;
+    const marginRight = 20;
+    const marginTop = 16;
+    const marginBottom = 36;
+    const plotWidth = width - marginLeft - marginRight;
+    const plotHeight = height - marginTop - marginBottom;
+
+    const bins = mc.histogram;
+    const maxCount = Math.max(...bins.map((b) => b.count), 1);
+    const domainMin = bins[0].from;
+    const domainMax = bins[bins.length - 1].to;
+    const xScale = (v: number) => marginLeft + ((v - domainMin) / (domainMax - domainMin)) * plotWidth;
+    const barGap = 2;
+    const rawBarWidth = plotWidth / bins.length;
+    const barWidth = Math.max(rawBarWidth - barGap, 1);
+
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1d4e89';
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() || '#b5651d';
+    const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim() || '#5b6474';
+    const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim() || '#dde1e7';
+
+    // Bars
+    for (const bin of bins) {
+      const center = (bin.from + bin.to) / 2;
+      const outOfSpec = spec ? center < spec.lsl || center > spec.usl : false;
+      const barHeight = (bin.count / maxCount) * plotHeight;
+      const rect = document.createElementNS(svgNs, 'rect');
+      rect.setAttribute('x', String(xScale(bin.from) + barGap / 2));
+      rect.setAttribute('y', String(marginTop + plotHeight - barHeight));
+      rect.setAttribute('width', String(barWidth));
+      rect.setAttribute('height', String(barHeight));
+      rect.setAttribute('rx', '2');
+      rect.setAttribute('fill', outOfSpec ? accentColor : primary);
+      const title = document.createElementNS(svgNs, 'title');
+      title.textContent = `${bin.from.toPrecision(4)} to ${bin.to.toPrecision(4)}: ${bin.count.toLocaleString()} samples`;
+      rect.appendChild(title);
+      chartSvg.appendChild(rect);
+    }
+
+    // Baseline
+    const baseline = document.createElementNS(svgNs, 'line');
+    baseline.setAttribute('x1', String(marginLeft));
+    baseline.setAttribute('x2', String(width - marginRight));
+    baseline.setAttribute('y1', String(marginTop + plotHeight));
+    baseline.setAttribute('y2', String(marginTop + plotHeight));
+    baseline.setAttribute('stroke', borderColor);
+    baseline.setAttribute('stroke-width', '1');
+    chartSvg.appendChild(baseline);
+
+    // Spec limit lines
+    if (spec) {
+      for (const [value, label] of [[spec.lsl, 'LSL'], [spec.usl, 'USL']] as const) {
+        if (value < domainMin || value > domainMax) continue;
+        const x = xScale(value);
+        const line = document.createElementNS(svgNs, 'line');
+        line.setAttribute('x1', String(x));
+        line.setAttribute('x2', String(x));
+        line.setAttribute('y1', String(marginTop));
+        line.setAttribute('y2', String(marginTop + plotHeight));
+        line.setAttribute('stroke', accentColor);
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-dasharray', '4,3');
+        chartSvg.appendChild(line);
+
+        const text = document.createElementNS(svgNs, 'text');
+        text.setAttribute('x', String(x));
+        text.setAttribute('y', String(marginTop - 4));
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('fill', mutedColor);
+        text.textContent = label;
+        chartSvg.appendChild(text);
+      }
+    }
+
+    // X-axis ticks: domain min, mean, domain max
+    for (const value of [domainMin, mc.mean, domainMax]) {
+      const x = xScale(value);
+      const text = document.createElementNS(svgNs, 'text');
+      text.setAttribute('x', String(x));
+      text.setAttribute('y', String(height - marginBottom + 16));
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('fill', mutedColor);
+      text.textContent = value.toPrecision(4);
+      chartSvg.appendChild(text);
+    }
+
+    // Legend (only meaningful with spec limits — two categories)
+    if (spec) {
+      const legendItems: [string, string][] = [
+        [primary, 'Within spec'],
+        [accentColor, 'Outside spec']
+      ];
+      legendItems.forEach(([color, label], i) => {
+        const swatch = document.createElementNS(svgNs, 'rect');
+        swatch.setAttribute('x', String(marginLeft + i * 120));
+        swatch.setAttribute('y', String(height - 14));
+        swatch.setAttribute('width', '10');
+        swatch.setAttribute('height', '10');
+        swatch.setAttribute('rx', '2');
+        swatch.setAttribute('fill', color);
+        chartSvg.appendChild(swatch);
+
+        const text = document.createElementNS(svgNs, 'text');
+        text.setAttribute('x', String(marginLeft + i * 120 + 14));
+        text.setAttribute('y', String(height - 5));
+        text.setAttribute('font-size', '10');
+        text.setAttribute('fill', mutedColor);
+        text.textContent = label;
+        chartSvg.appendChild(text);
+      });
+    }
+  }
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function clearError() {
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+  }
+
+  calculateBtn.addEventListener('click', () => {
+    const contributors = readContributors();
+    if (contributors.length === 0) {
+      showError('Add at least one contributor.');
+      return;
+    }
+    if (contributors.some((c) => !Number.isFinite(c.nominal) || !Number.isFinite(c.tolerance))) {
+      showError('Enter a valid nominal and tolerance for every contributor.');
+      return;
+    }
+
+    const useSpec = useSpecCheckbox.checked;
+    const usl = parseFloat(uslInput.value);
+    const lsl = parseFloat(lslInput.value);
+    const spec = useSpec && Number.isFinite(usl) && Number.isFinite(lsl) ? { usl, lsl } : null;
+    if (useSpec && !spec) {
+      showError('Enter both USL and LSL to compare against spec limits.');
+      return;
+    }
+
+    clearError();
+    const linear = computeLinearStack(contributors);
+    const mc = runMonteCarlo(contributors, 100000, spec ?? undefined);
+    const capability = spec ? computeCapability(mc.mean, mc.stddev, spec.usl, spec.lsl) : { cp: null, cpk: null };
+
+    resultsEl.hidden = false;
+    root.querySelector('[data-nominal]')!.textContent = `${fmt(linear.nominal)} mm`;
+    root.querySelector('[data-worstcase]')!.textContent = `± ${fmt(linear.worstCase)} mm`;
+    root.querySelector('[data-rss]')!.textContent = `± ${fmt(linear.rss)} mm`;
+    root.querySelector('[data-mc]')!.textContent = `${fmt(mc.mean)} mm / σ = ${fmt(mc.stddev)} mm`;
+
+    const outOfSpecRow = root.querySelector<HTMLElement>('[data-outofspec-row]')!;
+    const cpkRow = root.querySelector<HTMLElement>('[data-cpk-row]')!;
+    if (spec) {
+      outOfSpecRow.hidden = false;
+      root.querySelector('[data-outofspec]')!.textContent = `${((mc.fractionOutOfSpec ?? 0) * 100).toPrecision(3)}%`;
+      if (capability.cp !== null && capability.cpk !== null) {
+        cpkRow.hidden = false;
+        root.querySelector('[data-cpk]')!.textContent = `${fmt(capability.cp)} / ${fmt(capability.cpk)}`;
+      } else {
+        cpkRow.hidden = true;
+      }
+    } else {
+      outOfSpecRow.hidden = true;
+      cpkRow.hidden = true;
+    }
+
+    chartWrap.hidden = false;
+    renderHistogram(mc, spec);
+
+    lastReportText = formatStackUpReport({ contributors, linear, monteCarlo: mc, capability, spec });
+    exportRow.hidden = false;
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    if (!lastReportText) return;
+    try {
+      await navigator.clipboard.writeText(lastReportText);
+    } catch {
+      // Clipboard API unavailable in this browser context.
+    }
+    const original = copyBtn.textContent;
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => {
+      copyBtn.textContent = original;
+    }, 1500);
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!lastReportText) return;
+    const blob = new Blob([lastReportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'tolerance-stack-up-report.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+</script>

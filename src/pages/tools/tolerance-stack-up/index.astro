@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import StackUp from '../../../components/StackUp.astro';
+---
+
+<BaseLayout
+  title="Tolerance Stack-Up Calculator"
+  description="Linear worst-case and RSS tolerance stack-up with a Monte Carlo simulation, distribution histogram, and Cp/Cpk process capability. Runs entirely in your browser."
+>
+  <article class="tool-page wrap">
+    <h1>Tolerance Stack-Up Calculator</h1>
+    <p class="tool-intro">
+      Build a dimensional chain from a list of contributing dimensions,
+      each with its own tolerance and direction (adds to or subtracts
+      from the stack). Get the worst-case and RSS (statistical) stack-up,
+      run a 100,000-sample Monte Carlo simulation with a distribution
+      histogram, and — if you enter spec limits — the fraction out of
+      spec and Cp/Cpk process capability.
+    </p>
+
+    <StackUp />
+
+    <div class="notice">
+      The Monte Carlo simulation models each contributor as an independent
+      normal distribution with standard deviation = tolerance / 3 (i.e.
+      the stated tolerance is treated as a ±3σ spread) — a common
+      convention, but an assumption about your actual process, not a
+      measured fact. This tool runs entirely in your browser and is not a
+      substitute for a full statistical tolerance analysis of your real
+      process.
+    </div>
+
+    <p class="tool-footnote">
+      Looking for GD&amp;T position tolerance instead of a dimensional
+      chain? See the
+      <a href="/calculators/true-position/">True Position &amp; Bonus Tolerance calculator</a>.
+      See our <a href="/terms/">Terms</a> for what this tool is (and isn't)
+      a substitute for.
+    </p>
+  </article>
+</BaseLayout>

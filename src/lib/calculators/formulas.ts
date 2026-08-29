@@ -160,5 +160,28 @@ export const formulas: Record<string, FormulaFn> = {
         `δ = F / k = ${fmt(appliedForce)} / ${fmt(springRate)} = ${fmt(deflection)} m`
       ]
     };
+  },
+
+  // featureType: 0 = internal feature (hole) — MMC is the smallest size,
+  // bonus grows as the actual size grows past it. 1 = external feature
+  // (shaft/pin) — MMC is the largest size, bonus grows as the actual size
+  // shrinks below it. Bonus is clamped at 0 so a feature produced outside
+  // its own size tolerance doesn't report a negative bonus.
+  'true-position': ({ statedTolerance, mmcSize, actualSize, featureType, devX, devY }) => {
+    const bonusTolerance = featureType === 0 ? Math.max(actualSize - mmcSize, 0) : Math.max(mmcSize - actualSize, 0);
+    const totalPositionTolerance = statedTolerance + bonusTolerance;
+    const measuredTruePosition = 2 * Math.sqrt(devX ** 2 + devY ** 2);
+    const positionMargin = totalPositionTolerance - measuredTruePosition;
+    const featureLabel = featureType === 0 ? 'hole, MMC = smallest size' : 'shaft, MMC = largest size';
+    return {
+      results: { bonusTolerance, totalPositionTolerance, measuredTruePosition, positionMargin },
+      steps: [
+        `Feature: ${featureLabel}`,
+        `Bonus = |actual − MMC| = |${fmt(actualSize)} − ${fmt(mmcSize)}| = ${fmt(bonusTolerance)} m`,
+        `Total position tolerance = stated + bonus = ${fmt(statedTolerance)} + ${fmt(bonusTolerance)} = ${fmt(totalPositionTolerance)} m`,
+        `Measured true position = 2√(devX² + devY²) = 2√(${fmt(devX)}² + ${fmt(devY)}²) = ${fmt(measuredTruePosition)} m`,
+        `Margin = total − measured = ${fmt(totalPositionTolerance)} − ${fmt(measuredTruePosition)} = ${fmt(positionMargin)} m (positive = passes)`
+      ]
+    };
   }
 };

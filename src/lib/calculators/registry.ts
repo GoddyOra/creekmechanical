@@ -234,6 +234,38 @@ export const calculators: CalculatorDef[] = [
       { id: 'springRate', label: 'Spring rate (k)', kind: 'springRate' },
       { id: 'deflection', label: 'Deflection under load', kind: 'lengthSmall' }
     ]
+  },
+  {
+    slug: 'true-position',
+    title: 'True Position & Bonus Tolerance Calculator',
+    shortDescription: 'Measured true position and MMC/LMC bonus tolerance for a positional GD&T callout.',
+    intro:
+      'Enter a feature’s positional tolerance, its MMC size and actual measured size, and its measured X/Y deviation from true position to get the bonus tolerance, total available position tolerance, and pass/fail margin.',
+    formulaText: 'Bonus = |actual − MMC| · TP = 2√(devX² + devY²) · Margin = (stated + bonus) − TP',
+    fields: [
+      { id: 'statedTolerance', label: 'Stated position tolerance (⌀, at MMC)', kind: 'lengthSmall', type: 'number', default: 0.4, min: 0, step: 0.01 },
+      {
+        id: 'featureType',
+        label: 'Feature type',
+        kind: 'none',
+        type: 'select',
+        default: 0,
+        options: [
+          { value: 0, label: 'Internal (hole) — MMC = smallest size' },
+          { value: 1, label: 'External (shaft/pin) — MMC = largest size' }
+        ]
+      },
+      { id: 'mmcSize', label: 'MMC size', kind: 'lengthSmall', type: 'number', default: 10.0, min: 0, step: 0.01 },
+      { id: 'actualSize', label: 'Actual measured size', kind: 'lengthSmall', type: 'number', default: 10.15, min: 0, step: 0.01 },
+      { id: 'devX', label: 'Measured X deviation', kind: 'lengthSmall', type: 'number', default: 0.15, step: 0.01 },
+      { id: 'devY', label: 'Measured Y deviation', kind: 'lengthSmall', type: 'number', default: 0.1, step: 0.01 }
+    ],
+    results: [
+      { id: 'bonusTolerance', label: 'Bonus tolerance', kind: 'lengthSmall' },
+      { id: 'totalPositionTolerance', label: 'Total position tolerance available', kind: 'lengthSmall' },
+      { id: 'measuredTruePosition', label: 'Measured true position (⌀)', kind: 'lengthSmall' },
+      { id: 'positionMargin', label: 'Margin (positive = passes)', kind: 'lengthSmall' }
+    ]
   }
 ];
 
