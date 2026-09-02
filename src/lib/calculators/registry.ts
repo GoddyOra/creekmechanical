@@ -31,6 +31,7 @@ export interface CalculatorDef {
   shortDescription: string;
   intro: string;
   formulaText: string;
+  relatedGuide?: { href: string; label: string };
   fields: CalculatorField[];
   results: CalculatorResult[];
 }
@@ -43,6 +44,7 @@ export const calculators: CalculatorDef[] = [
     intro:
       'Enter the tooth counts of a driver and driven gear along with the input torque and speed to get the gear ratio, output speed, and output torque for an ideal (lossless) gear mesh.',
     formulaText: 'GR = N_driven / N_driver · N_out = N_in / GR · T_out = T_in × GR',
+    relatedGuide: { href: '/guides/spur-gear-design-basics/', label: 'Spur Gear Design Basics' },
     fields: [
       { id: 'driverTeeth', label: 'Driver gear teeth', kind: 'none', type: 'number', default: 20, min: 1, step: 1 },
       { id: 'drivenTeeth', label: 'Driven gear teeth', kind: 'none', type: 'number', default: 60, min: 1, step: 1 },
@@ -94,6 +96,7 @@ export const calculators: CalculatorDef[] = [
     intro:
       'Enter the bolt’s nominal diameter, the preload (clamp force) you want, and a friction/nut factor K to get the tightening torque. K ≈ 0.20 is a common default for non-lubricated steel fasteners.',
     formulaText: 'T = K F d',
+    relatedGuide: { href: '/guides/choosing-bolt-torque-spec/', label: 'Choosing a Bolt Torque Spec' },
     fields: [
       { id: 'diameter', label: 'Nominal diameter', kind: 'lengthSmall', type: 'number', default: 10, min: 0, step: 0.1 },
       { id: 'preload', label: 'Target preload', kind: 'force', type: 'number', default: 15000, min: 0, step: 10 },
@@ -108,6 +111,7 @@ export const calculators: CalculatorDef[] = [
     intro:
       'Enter a bearing’s basic dynamic load rating (C) and the equivalent dynamic load it sees (P) to get the L10 life — the number of revolutions 90% of a batch of identical bearings are expected to exceed before fatigue failure.',
     formulaText: 'L10 = (C / P)^k · L10h = L10 × 10⁶ / (60 N)',
+    relatedGuide: { href: '/guides/bearing-l10-life-explained/', label: 'What Bearing L10 Life Actually Means' },
     fields: [
       { id: 'dynamicLoadRating', label: 'Dynamic load rating (C)', kind: 'forceLarge', type: 'number', default: 25, min: 0, step: 0.1 },
       { id: 'equivalentLoad', label: 'Equivalent dynamic load (P)', kind: 'forceLarge', type: 'number', default: 5, min: 0, step: 0.1 },
@@ -242,6 +246,7 @@ export const calculators: CalculatorDef[] = [
     intro:
       'Enter a feature’s positional tolerance, its MMC size and actual measured size, and its measured X/Y deviation from true position to get the bonus tolerance, total available position tolerance, and pass/fail margin.',
     formulaText: 'Bonus = |actual − MMC| · TP = 2√(devX² + devY²) · Margin = (stated + bonus) − TP',
+    relatedGuide: { href: '/guides/gdt-feature-control-frame/', label: 'How to Read a GD&T Feature Control Frame' },
     fields: [
       { id: 'statedTolerance', label: 'Stated position tolerance (⌀, at MMC)', kind: 'lengthSmall', type: 'number', default: 0.4, min: 0, step: 0.01 },
       {

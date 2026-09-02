@@ -1,19 +1,33 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const guides = (await getCollection('guides')).sort(
+  (a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf()
+);
 ---
 
 <BaseLayout
   title="Guides"
-  description="Long-form guides on mechanical design, tolerancing, and using Creek Mechanical's tools — coming soon."
+  description="Long-form guides on mechanical design, tolerancing, GD&T, and using Creek Mechanical's tools."
 >
-  <section class="coming-soon wrap">
-    <span class="badge">Coming soon</span>
+  <section class="hero wrap">
     <h1>Guides</h1>
     <p>
-      Long-form guides on mechanical design, tolerancing, and using the
-      tools and calculators on this site are coming here. Each guide will
-      link to the relevant tool, and every tool page will link back to at
-      least one guide.
+      Practical, engineer-written guides on mechanical design and
+      tolerancing — each one tied to a tool on this site you can use
+      immediately.
     </p>
+  </section>
+
+  <section class="wrap">
+    <div class="hub-grid">
+      {guides.map((g) => (
+        <a class="hub-card" href={`/guides/${g.id}/`}>
+          <h3>{g.data.title}</h3>
+          <p>{g.data.description}</p>
+        </a>
+      ))}
+    </div>
   </section>
 </BaseLayout>

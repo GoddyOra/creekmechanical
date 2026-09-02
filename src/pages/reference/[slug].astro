@@ -27,5 +27,10 @@ const { def } = Astro.props;
     <ReferenceTable def={def} />
 
     <div class="notice">{def.sourceNote}</div>
+    {def.relatedGuide && (
+      <p class="tool-footnote">
+        Related guide: <a href={def.relatedGuide.href}>{def.relatedGuide.label}</a>.
+      </p>
+    )}
   </article>
 </BaseLayout>

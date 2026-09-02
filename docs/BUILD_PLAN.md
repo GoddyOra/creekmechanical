@@ -212,6 +212,8 @@ Pure JavaScript maths, no WASM required, and directly adjacent to well-paid cons
 
 ### Stage 11 — Authority Building & Cadence
 
+> **First batch done**: 10 guides are published (see `src/content/guides/`), each linked to and from an existing tool page. Ongoing cadence (2–3/week) and the remaining items below haven't started.
+
 - Submit the tools to free directories: AlternativeTo, Product Hunt, relevant awesome-lists on GitHub, and engineering tool roundups.
 - Participate genuinely in r/MechanicalEngineering, r/cad, r/3Dprinting, Eng-Tips and the CalculiX and FreeCAD forums — answer questions properly and link a tool only where it actually resolves the question.
 - Open-source a small utility from the build on GitHub; repository backlinks and developer traffic both compound.

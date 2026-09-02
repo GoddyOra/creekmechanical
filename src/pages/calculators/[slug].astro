@@ -22,6 +22,7 @@ const { def } = Astro.props;
       sent anywhere. Results are for engineering reference only and are not
       a substitute for professional judgment; see the <a href="/terms/">Terms</a>
       page.
+      {def.relatedGuide && <> Related guide: <a href={def.relatedGuide.href}>{def.relatedGuide.label}</a>.</>}
     </p>
   </article>
 </BaseLayout>

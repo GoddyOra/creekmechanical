@@ -24,12 +24,41 @@ Stages 0–8 of `docs/BUILD_PLAN.md` are built: a base layout, the positioning
 pages (About, Privacy, Terms, Contact), the calculator engine (11
 calculators), the reference data library (8 tables), the STEP/IGES
 viewer/converter, the CAD compatibility checker, the parametric part
-generator (6 generators), and the tolerance stack-up / GD&T tools.
-`/guides/` and `/services/` are still "coming soon" placeholders. There
-are no content collections yet (Stage 9+). Don't assume any of that is
-already wired up. This was the last stage the original 11-stage roadmap
-scoped as pure product build-out — Stage 9 onward (SEO/schema, the
-freelance funnel, authority building) is a different kind of work.
+generator (6 generators), and the tolerance stack-up / GD&T tools. This
+was the last stage the original 11-stage roadmap scoped as pure product
+build-out — Stage 9 onward (SEO/schema, the freelance funnel, authority
+building) is a different kind of work, and hasn't formally started, but
+`/guides/` is no longer a placeholder: it now runs on a real Astro content
+collection with a first batch of 10 published guides (see below).
+`/services/` is still "coming soon." Don't assume anything beyond what's
+listed here is already wired up.
+
+### Guides content collection
+
+- `src/content.config.ts` — the `guides` collection schema: `title`,
+  `description`, `targetKeyword`, `author` (defaults to `'Creek Mechanical'`
+  — **TODO(user): set a real byline** once you decide on one; it's used as
+  portfolio evidence, so it matters here more than on the rest of the site),
+  `publishDate`, optional `updatedDate`, and `funnelsTo` (an array of
+  `{href, label}` tool links rendered as a "Try it yourself" callout at the
+  bottom of the guide).
+- `src/content/guides/*.md` — one Markdown file per guide. Body content
+  starts at `##` (H2), never `#` — the page template renders the
+  frontmatter `title` as the H1 separately, so a Markdown `#` would create
+  a duplicate, SEO-confusing heading.
+- `src/pages/guides/[slug].astro` — one dynamic route over the collection
+  (`getCollection('guides')` + `render(entry)`), wrapping the rendered
+  Markdown in the same `.prose` styling used by About/Privacy/Terms.
+- `src/pages/guides/index.astro` — lists all guides, newest first.
+- **The internal-linking loop is closed, not just documented**: every
+  guide's `funnelsTo` points at a real tool/calculator/reference page, and
+  every one of those pages was updated with a matching "Related guide"
+  link back (`relatedGuide`/`relatedGuides` fields added to
+  `CalculatorDef`, `ReferenceTableDef`, and `ViewerToolDef` for the
+  registry-driven pages; the standalone generator/checker/stack-up pages
+  got their footnote paragraphs edited directly). When adding a new guide,
+  close the loop the same way — don't just add the outbound link and leave
+  the tool page pointing nowhere back.
 
 ### Calculator engine (Stage 3)
 

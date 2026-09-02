@@ -1,0 +1,40 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides');
+  return guides.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { title, description, author, publishDate, updatedDate, funnelsTo } = entry.data;
+const { Content } = await render(entry);
+
+const dateFormat: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="tool-page wrap">
+    <div class="prose">
+      <h1>{title}</h1>
+      <p class="updated">
+        By {author} · Published {publishDate.toLocaleDateString('en-US', dateFormat)}
+        {updatedDate && <> · Updated {updatedDate.toLocaleDateString('en-US', dateFormat)}</>}
+      </p>
+      <Content />
+    </div>
+
+    {funnelsTo.length > 0 && (
+      <div class="notice guide-tools">
+        <strong>Try it yourself:</strong>
+        {funnelsTo.map((link, i) => (
+          <>
+            {i > 0 && ' · '}
+            <a href={link.href}>{link.label}</a>
+          </>
+        ))}
+      </div>
+    )}
+  </article>
+</BaseLayout>

@@ -13,7 +13,10 @@ export interface ViewerToolDef {
   intro: string;
   acceptExtensions: string; // for <input accept="...">
   highlightExport?: ExportFormat;
+  relatedGuides?: { href: string; label: string }[];
 }
+
+const formatGuide = { href: '/guides/stl-vs-obj-vs-3mf/', label: 'STL vs. OBJ vs. 3MF: Which Should You Export?' };
 
 export const viewerTools: ViewerToolDef[] = [
   {
@@ -22,7 +25,11 @@ export const viewerTools: ViewerToolDef[] = [
     shortDescription: 'View STEP, IGES, and BREP CAD files directly in your browser, then export to STL, OBJ, or 3MF.',
     intro:
       'Open a STEP, IGES, or BREP file to view it in 3D — orbit, section, measure, and check dimensions — then export to STL, OBJ, or 3MF. Nothing is uploaded; the file never leaves your browser.',
-    acceptExtensions: '.step,.stp,.iges,.igs,.brep'
+    acceptExtensions: '.step,.stp,.iges,.igs,.brep',
+    relatedGuides: [
+      formatGuide,
+      { href: '/guides/non-manifold-geometry-step-files/', label: 'Why STEP Files Come In Non-Manifold (and How to Fix It)' }
+    ]
   },
   {
     slug: 'step-to-stl',
@@ -31,7 +38,8 @@ export const viewerTools: ViewerToolDef[] = [
     intro:
       'Drop in a STEP (.step/.stp) file to view it in 3D and export it as STL for 3D printing or CAM. Processed entirely in your browser — the file is never uploaded anywhere.',
     acceptExtensions: '.step,.stp',
-    highlightExport: 'stl'
+    highlightExport: 'stl',
+    relatedGuides: [formatGuide]
   },
   {
     slug: 'iges-to-stl',
@@ -40,7 +48,8 @@ export const viewerTools: ViewerToolDef[] = [
     intro:
       'Drop in an IGES (.iges/.igs) file to view it in 3D and export it as STL for 3D printing or CAM. Processed entirely in your browser — the file is never uploaded anywhere.',
     acceptExtensions: '.iges,.igs',
-    highlightExport: 'stl'
+    highlightExport: 'stl',
+    relatedGuides: [formatGuide]
   },
   {
     slug: 'step-to-obj',
@@ -49,7 +58,8 @@ export const viewerTools: ViewerToolDef[] = [
     intro:
       'Drop in a STEP (.step/.stp) file to view it in 3D and export it as OBJ for use in modeling or rendering software. Processed entirely in your browser — the file is never uploaded anywhere.',
     acceptExtensions: '.step,.stp',
-    highlightExport: 'obj'
+    highlightExport: 'obj',
+    relatedGuides: [formatGuide]
   },
   {
     slug: 'brep-to-stl',
@@ -58,7 +68,8 @@ export const viewerTools: ViewerToolDef[] = [
     intro:
       'Drop in a BREP (.brep) file to view it in 3D and export it as STL for 3D printing or CAM. Processed entirely in your browser — the file is never uploaded anywhere.',
     acceptExtensions: '.brep',
-    highlightExport: 'stl'
+    highlightExport: 'stl',
+    relatedGuides: [formatGuide]
   }
 ];
 

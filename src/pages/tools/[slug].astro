@@ -23,6 +23,15 @@ const { def } = Astro.props;
       <a href="/privacy/">Privacy</a> page for details, and our
       <a href="/terms/">Terms</a> for what this tool is (and isn't) a
       substitute for.
+      {def.relatedGuides && def.relatedGuides.length > 0 && (
+        <> Related {def.relatedGuides.length > 1 ? 'guides' : 'guide'}:{' '}
+        {def.relatedGuides.map((g, i) => (
+          <>
+            {i > 0 && ' · '}
+            <a href={g.href}>{g.label}</a>
+          </>
+        ))}.</>
+      )}
     </p>
   </article>
 </BaseLayout>

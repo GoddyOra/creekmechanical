@@ -20,11 +20,12 @@ with STL/OBJ/3MF export across 5 tool pages, a CAD compatibility checker
 with a downloadable report, a parametric part generator (6 generators —
 live 3D preview, STL export, shareable permalink), and a tolerance
 stack-up calculator (worst-case/RSS, Monte Carlo simulation with a
-histogram, Cp/Cpk). `/guides/` and `/services/` are still placeholders.
-Stage 9 onward (SEO/schema, the freelance funnel, authority building) is
-a different kind of work than the stages so far. See
-[`CLAUDE.md`](CLAUDE.md) for the durable constraints and conventions this
-project follows going forward.
+histogram, Cp/Cpk). `/guides/` now runs on a real content collection with
+10 published guides, each linked to and from the tool it's paired with;
+`/services/` is still a placeholder. Stage 9 onward (SEO/schema, the
+freelance funnel, authority building) is a different kind of work than
+the stages so far. See [`CLAUDE.md`](CLAUDE.md) for the durable
+constraints and conventions this project follows going forward.
 
 ## Stack
 

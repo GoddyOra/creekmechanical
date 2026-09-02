@@ -18,6 +18,7 @@ export interface ReferenceTableDef {
   shortDescription: string;
   intro: string;
   sourceNote: string;
+  relatedGuide?: { href: string; label: string };
   columns: ReferenceColumn[];
   rows: Record<string, string | number>[];
 }
@@ -62,6 +63,7 @@ export const referenceTables: ReferenceTableDef[] = [
       'Typical dry (unlubricated, K ≈ 0.20) tightening torque for common bolt sizes across standard strength grades. For a specific preload target instead of a typical grade torque, use the ',
     sourceNote:
       'Approximate values compiled from commonly published fastener torque charts. Required torque depends heavily on friction/lubrication condition, plating, and application — verify against the fastener manufacturer’s specification before use on a critical joint.',
+    relatedGuide: { href: '/guides/choosing-bolt-torque-spec/', label: 'Choosing a Bolt Torque Spec' },
     columns: [
       { id: 'size', label: 'Size' },
       { id: 'sae5', label: 'SAE Grade 5 (ft·lb)', numeric: true },
@@ -257,6 +259,7 @@ export const referenceTables: ReferenceTableDef[] = [
       'Nominal sheet thickness by gauge number. Steel uses Manufacturers’ Standard Gauge; aluminum (and other non-ferrous sheet) traditionally uses a different gauge standard, so the same gauge number is not the same thickness across materials.',
     sourceNote:
       'Nominal values compiled from common gauge reference charts. Gauge-to-thickness mapping can vary by supplier and material — verify against your supplier’s spec for precise thickness requirements.',
+    relatedGuide: { href: '/guides/sheet-metal-design-mistakes/', label: 'Sheet Metal Design Mistakes That Cause Delays' },
     columns: [
       { id: 'gauge', label: 'Gauge', numeric: true },
       { id: 'steelIn', label: 'Steel (in)', numeric: true },
