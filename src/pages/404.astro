@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Page not found"
+  description="This page doesn't exist. Find calculators, reference data, and CAD tools on Creek Mechanical."
+>
+  <article class="prose wrap">
+    <h1>Page not found</h1>
+    <p>
+      The page you're looking for doesn't exist, or the link may be broken.
+      Here's where you can go instead:
+    </p>
+    <ul>
+      <li><a href="/tools/">Browser CAD tools</a> — STEP/IGES viewer, converters, compatibility checker, parametric generators</li>
+      <li><a href="/calculators/">Calculators</a> — gear ratio, bolt torque, bearing life, and more</li>
+      <li><a href="/reference/">Reference data</a> — thread specs, tolerances, material properties</li>
+      <li><a href="/guides/">Guides</a> — how-to articles on CAD and mechanical design</li>
+    </ul>
+    <p><a href="/">Back to the homepage</a></p>
+  </article>
+</BaseLayout>

@@ -86,6 +86,22 @@ a:hover {
   color: var(--color-primary);
 }
 
+@media (max-width: 640px) {
+  .primary-nav {
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .primary-nav ul {
+    flex-wrap: nowrap;
+  }
+
+  .primary-nav a {
+    white-space: nowrap;
+  }
+}
+
 /* Main */
 
 main {
