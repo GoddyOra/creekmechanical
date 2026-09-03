@@ -333,10 +333,10 @@
     const capability = spec ? computeCapability(mc.mean, mc.stddev, spec.usl, spec.lsl) : { cp: null, cpk: null };
 
     resultsEl.hidden = false;
-    root.querySelector('[data-nominal]')!.textContent = `${fmt(linear.nominal)} mm`;
-    root.querySelector('[data-worstcase]')!.textContent = `± ${fmt(linear.worstCase)} mm`;
-    root.querySelector('[data-rss]')!.textContent = `± ${fmt(linear.rss)} mm`;
-    root.querySelector('[data-mc]')!.textContent = `${fmt(mc.mean)} mm / σ = ${fmt(mc.stddev)} mm`;
+    resultsEl.querySelector('[data-nominal]')!.textContent = `${fmt(linear.nominal)} mm`;
+    resultsEl.querySelector('[data-worstcase]')!.textContent = `± ${fmt(linear.worstCase)} mm`;
+    resultsEl.querySelector('[data-rss]')!.textContent = `± ${fmt(linear.rss)} mm`;
+    resultsEl.querySelector('[data-mc]')!.textContent = `${fmt(mc.mean)} mm / σ = ${fmt(mc.stddev)} mm`;
 
     const outOfSpecRow = root.querySelector<HTMLElement>('[data-outofspec-row]')!;
     const cpkRow = root.querySelector<HTMLElement>('[data-cpk-row]')!;
