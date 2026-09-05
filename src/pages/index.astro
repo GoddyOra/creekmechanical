@@ -31,8 +31,8 @@ const sections = [
 ---
 
 <BaseLayout
-  title="Free browser CAD tools that never upload your files"
-  description="Creek Mechanical is a free platform of browser-based mechanical engineering and CAD tools. Every tool runs entirely client-side — your files never leave your computer."
+  title="Free Browser CAD Tools & Calculators"
+  description="Free browser-based mechanical engineering tools: CAD viewers, calculators, reference data, and design guides. Files never leave your computer."
 >
   <section class="hero wrap">
     <h1>Free browser CAD tools that never upload your files</h1>
@@ -53,5 +53,27 @@ const sections = [
         </a>
       ))}
     </div>
+  </section>
+
+  <section class="wrap prose">
+    <h2>Why everything runs in your browser</h2>
+    <p>
+      Most online CAD tools work by uploading your file to a server, converting
+      it, and sending back a result — which means your geometry sits on someone
+      else's machine, even if only briefly. Creek Mechanical's viewer and
+      converters use a CAD kernel compiled to WebAssembly, so STEP, IGES, and
+      BREP files are parsed and rendered directly on your device. Nothing you
+      open here is ever transmitted anywhere, which matters if you're working
+      with proprietary designs, client geometry under NDA, or anything else
+      you'd rather not hand to a third-party server.
+    </p>
+    <p>
+      The <a href="/calculators/">calculators</a> and <a href="/reference/">reference tables</a> cover
+      the everyday lookups mechanical and design engineers reach for — bolt
+      torque, bearing life, thread specs, tolerance stack-ups — while the
+      <a href="/guides/">guides</a> go deeper into the reasoning behind them,
+      like when to use worst-case versus RSS tolerancing, or how to read a
+      GD&T feature control frame.
+    </p>
   </section>
 </BaseLayout>

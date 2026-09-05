@@ -1,0 +1,16 @@
+# Creek Mechanical
+
+> Free browser-based mechanical engineering and CAD tools. Every tool runs entirely client-side using WebAssembly — files are never uploaded to a server.
+
+Creek Mechanical is a static website offering calculators, reference data, a CAD file viewer/converter, a CAD compatibility checker, parametric part generators, and a tolerance stack-up analyzer for mechanical engineers and designers. All computation happens in the visitor's browser; no file or design data is ever transmitted to a server.
+
+## Tools
+- [Tools hub](https://creekmechanical.com/tools/): STEP/IGES/BREP viewer, format converters (to STL/OBJ/3MF), a CAD compatibility checker, and parametric part generators
+- [Calculators](https://creekmechanical.com/calculators/): gear ratio, shaft torque, beam deflection, bolt torque, bearing life, pipe flow, column buckling, thermal expansion, factor of safety, spring rate, and GD&T true position
+- [Reference data](https://creekmechanical.com/reference/): thread specifications, tap/drill/clearance hole sizes, bolt torque specs, material properties, hardness conversion, surface finish comparison, drill gauge sizes, sheet metal gauge sizes
+- [Guides](https://creekmechanical.com/guides/): long-form technical articles on CAD file formats, tolerancing, GD&T, gear and sprocket design, and mechanical design practice
+- [Services](https://creekmechanical.com/services/): freelance mechanical engineering and CAD work
+
+## About
+- [About](https://creekmechanical.com/about/)
+- [Contact](https://creekmechanical.com/contact/)
