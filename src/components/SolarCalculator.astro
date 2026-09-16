@@ -692,7 +692,8 @@ const applianceNames = [...new Set(APPLIANCE_CATALOG.map((a) => a.name))].sort()
 
     const indicatorBox = root.querySelector<HTMLElement>('[data-indicator-rows]')!;
     indicatorBox.replaceChildren(
-      row('(2) Annual energy delivered', num(e.energy.deliveredKwh, 0, ' kWh/yr')),
+      row('(2) Annual energy generated', num(e.energy.deliveredKwh, 0, ' kWh/yr')),
+      row('      used by the loads', `${num(e.energy.usefulKwh, 0, ' kWh/yr')}${e.energy.surplusFraction > 0.01 ? ` — ${(e.energy.surplusFraction * 100).toFixed(0)}% surplus earns nothing` : ''}`),
       row('(3) Annual O&M (M)', `${money(e.om.total)} — incl. ${money(e.om.batteryReplacementAnnualised)} battery replacement`),
       row('(4) Annual revenue (AR)', money(e.annualRevenue)),
       row('(5) Fuel cost', e.fuelCost === 0 ? `${money(0)} — solar has no fuel` : money(e.fuelCost)),

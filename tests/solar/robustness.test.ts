@@ -19,8 +19,18 @@ import { suggestAppliance, fallbackClass } from '../../src/lib/solar/catalog.ts'
 
 const AMPACITY: Record<number, number> = { 1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 50, 16: 68, 25: 89, 35: 110, 50: 134, 70: 171, 95: 207, 120: 239, 150: 275, 185: 314, 240: 370 };
 
+/**
+ * Cost per kWh and LCOE are legitimately undefined when a system delivers no
+ * usable energy — the cost of zero kWh is not a number, and saying so is more
+ * honest than inventing a zero. Those two are allowed to be non-finite, and
+ * the caller separately asserts that the result explains itself and that
+ * nothing non-finite ever reaches the user. Everything else must be finite.
+ */
+const UNDEFINED_WHEN_NO_ENERGY = new Set(['economics.costPerKwh', 'economics.lcoe.value']);
+
 function assertAllFinite(value: unknown, path: string) {
   if (typeof value === 'number') {
+    if (UNDEFINED_WHEN_NO_ENERGY.has(path)) return;
     assert.ok(Number.isFinite(value), `${path} is ${value}`);
     return;
   }
@@ -51,6 +61,15 @@ describe('Edge cases', () => {
       const e = computeEconomics(s, settings, DEFAULT_ECONOMIC_SETTINGS, DEFAULT_PRICES, DEFAULT_TARIFFS);
       assertAllFinite(s, 'sizing');
       assertAllFinite(e, 'economics');
+
+      // If either indicator is undefined, the result must say why.
+      if (!Number.isFinite(e.lcoe.value) || !Number.isFinite(e.costPerKwh)) {
+        assert.ok(
+          e.notes.some((n) => n.includes('cannot be computed')),
+          'an undefined LCOE or cost per kWh must be explained in the notes'
+        );
+      }
+
       const report = formatSolarReport(s, settings, e, DEFAULT_ECONOMIC_SETTINGS, CURRENCIES[0]);
       assert.ok(!/\bNaN\b|\bInfinity\b/.test(report), 'report must never show NaN or Infinity');
     });

@@ -86,7 +86,8 @@ export function formatSolarReport(
     out.push(line('      Contingency', money(economics.capital.contingency)));
     out.push(line('      TOTAL (C)', money(economics.capital.total)));
     out.push('');
-    out.push(line('  (2) Annual energy delivered', num(economics.energy.deliveredKwh, 0, ' kWh/yr')));
+    out.push(line('  (2) Annual energy generated', num(economics.energy.deliveredKwh, 0, ' kWh/yr')));
+    out.push(line('      of which used by the loads', num(economics.energy.usefulKwh, 0, ' kWh/yr') + (economics.energy.surplusFraction > 0.01 ? ` (${(economics.energy.surplusFraction * 100).toFixed(0)}% surplus earns nothing)` : '')));
     out.push(line('  (3) Annual O&M (M)', money(economics.om.total)));
     out.push(line('      of which battery replacement', money(economics.om.batteryReplacementAnnualised)));
     out.push(line('  (4) Annual revenue (AR)', money(economics.annualRevenue)));

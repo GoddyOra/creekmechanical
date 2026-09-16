@@ -1,14 +1,28 @@
-// Default component prices for the techno-economic analysis.
+// Component prices and tariffs for the techno-economic analysis.
 //
-// ⚠ THESE ARE PLACEHOLDERS. They are order-of-magnitude figures for the
-// Nigerian market, not quotes, and solar component pricing moves fast enough
-// that any hard-coded number is wrong within months. Every one is editable in
-// the UI, and the UI shows PRICES_LAST_REVIEWED beside them so a user can see
-// how stale they are. Replace them with real supplier quotes before putting
-// any weight on an NPV or payback figure.
+// These are REAL market figures researched on 2026-09-16, not invented
+// placeholders — but they are still mid-range estimates from public listings,
+// not quotes for your job. Nigerian solar pricing tracks the naira/dollar rate
+// and moves fast; over 95% of panels are imported. Every value is editable in
+// the UI, which shows PRICES_LAST_REVIEWED beside them so a user can judge how
+// stale they are. Replace them with supplier quotes before signing anything.
 //
 // Deliberately NOT fetched at runtime: this site is static with no server
 // compute, and a scraped price would rot silently rather than visibly.
+//
+// Sources (all retrieved 2026-09-16), with the observed range in brackets and
+// the chosen midpoint noted per field below:
+//   nigeriahousingmarket.com/guides/cost-of-solar-panel-in-nigeria-2026-price-list
+//   solarenergysupplystores.com/solar-panel-price-in-nigeria/
+//   af.powmr.com/blogs/news/how-much-is-solar-battery-in-nigeria
+//   ksopgloballtd.ng/blog/best-lithium-battery-for-solar-in-nigeria-prices-recommendations-2026-guide/
+//   solarenergysupplystores.com/solar-inverter-price-in-nigeria/
+//   maypatronic.com/product-category/solar-charge-controller-nigeria/
+//   nigerianprice.com/16-mm-cable-prices-in-nigeria/
+//   kara.com.ng/electrical-accessories/electric-circuit-breaker
+//   pvpro.com.ng/cost-of-solar-installation-in-nigeria-2026/
+//   nerc.gov.ng/faq/electricity-tariffs/
+//   dailyfuels.com/nigeria/
 
 export const PRICES_LAST_REVIEWED = '2026-09-16';
 
@@ -38,16 +52,30 @@ export interface PriceBook {
 
 /** All values in NGN. */
 export const DEFAULT_PRICES: PriceBook = {
-  panelPerWatt: 420,
-  inverterPerWatt: 380,
-  batteryPerWhLithium: 480,
-  batteryPerWhLeadAcid: 220,
-  controllerPerAmp: 5200,
-  cablePerMetreMm2: 900,
-  breakerEach: 28000,
-  spdEach: 65000,
-  mountingPerPanel: 42000,
-  installFraction: 0.15,
+  // 550 W monocrystalline listed at N115,000-165,000 => N209-300/W.
+  panelPerWatt: 250,
+  // 5 kVA hybrid inverter N350,000-750,000 (~N87-187/W at 0.8 pf);
+  // 10 kVA units around N1.4M-2.5M.
+  inverterPerWatt: 160,
+  // 48 V 200 Ah (10 kWh) LiFePO4 at N1,650,000-2,650,000 => N165-265/Wh.
+  batteryPerWhLithium: 200,
+  // Tubular lead-acid runs roughly N100-145/Wh nameplate — but only half of
+  // that is usable at a 50% depth of discharge, so it is not the bargain the
+  // per-Wh figure suggests.
+  batteryPerWhLeadAcid: 120,
+  // 60 A MPPT N110,000-210,000; 80 A around N170,000-190,000 => ~N2,100-3,500/A.
+  controllerPerAmp: 2400,
+  // 16 mm2 single-core copper at ~N1,367/m => ~N85/m/mm2. Carried higher here
+  // because PV1-F solar cable costs meaningfully more than building wire.
+  cablePerMetreMm2: 150,
+  // MCBs run N4,000-30,000; a 125 A DC MCCB about N26,000. Blended, since most
+  // breakers in a system are small.
+  breakerEach: 18000,
+  spdEach: 55000,
+  mountingPerPanel: 25000,
+  // Labour quoted at N200,000-500,000 for typical residential systems, which
+  // lands near 8% of hardware on a mid-size job.
+  installFraction: 0.08,
   contingencyFraction: 0.08,
 };
 
@@ -64,8 +92,14 @@ export interface TariffBook {
 
 /** All values in NGN. */
 export const DEFAULT_TARIFFS: TariffBook = {
+  // NERC Band A (20+ hours daily supply), the band most solar buyers are on.
+  // Lower bands pay less, which weakens the savings case — edit this to match
+  // the actual band.
   gridTariffPerKwh: 225,
-  dieselPerLitre: 1300,
+  // Volatile: quoted around N1,720/L nationally in September 2026, with Abuja
+  // spiking past N2,000/L in the same month, and NBS monthly averages running
+  // higher still. This is the single most uncertain number here.
+  dieselPerLitre: 1900,
   generatorLitresPerKwh: 0.4,
   generatorDisplacedFraction: 0.5,
 };

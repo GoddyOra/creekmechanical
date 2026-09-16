@@ -47,8 +47,18 @@ ROI) adapted from Sobamowo & Ojolo (2018).
   `SizingSettings`; nothing is inlined.
 - `src/lib/solar/economics.ts` — equations (1)–(14b), pure.
 - `src/lib/solar/currency.ts`, `prices.ts` — 13 currencies (NGN base) and the
-  price/tariff books. **Both ship placeholder values with a `lastReviewed`
-  date and say so in the UI.** They are not quotes; don't present them as any.
+  price/tariff books. Values are **real Nigerian market figures researched
+  2026-09-16**, with the source URLs and observed ranges in the file header.
+  They are mid-range estimates from public listings, not quotes, and Nigerian
+  solar pricing tracks the naira/dollar rate — re-check them and bump
+  `PRICES_LAST_REVIEWED` rather than letting them drift silently. Only NGN
+  (base) and USD are sourced exchange rates; the rest are approximate crosses.
+
+**Benefit is earned on consumed energy, not generation.** Nigeria has no
+general net-metering, so `energy.usefulKwh = min(delivered, demand)` and
+anything above that earns nothing — otherwise an oversized array would inflate
+its own payback. LCOE uses the same basis, since the UI compares it to a grid
+tariff.
 - `src/components/SolarCalculator.astro` — three-step island, same
   `data-*` + `querySelector` shape as `StackUp.astro`.
 

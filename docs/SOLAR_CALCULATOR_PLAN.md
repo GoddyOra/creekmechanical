@@ -1100,12 +1100,16 @@ Resolved:
 
 Still open:
 
-- **Real component prices.** The shipped `prices.ts` is placeholders with a
-  visible review date, and the UI says so prominently. Every payback and NPV
-  figure is only as good as these. This is the highest-value thing you can
-  supply.
-- **Exchange rates** in `currency.ts` are indicative and editable, same
-  caveat. Only NGN is authoritative, being the base.
+- ~~Real component prices.~~ Researched and applied 2026-09-16 — source URLs
+  and observed ranges are in the `prices.ts` header. They are mid-range figures
+  from public listings rather than quotes, so re-check before relying on them
+  commercially, and bump `PRICES_LAST_REVIEWED` when you do. Replacing the
+  invented placeholders moved a realistic ten-appliance system from "never pays
+  back" to a 4.1-year payback; the model was never the problem, the costs were.
+- **Exchange rates** in `currency.ts`: NGN is the base and USD is sourced
+  (NFEM official, N1,328/USD on 2026-09-16). Every other currency is an
+  approximate cross and should be treated as a starting point. AED is pegged
+  and therefore solid.
 - **Benefit basis** defaults to avoided cost (grid tariff + displaced diesel),
   with the paper's "required selling price" framing as the alternative. Say if
   you want that flipped.

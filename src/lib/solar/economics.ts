@@ -159,6 +159,18 @@ export interface EnergyResult {
   generatedKwh: number;
   /** After the round-trip hit on the stored fraction. */
   deliveredKwh: number;
+  /** Annual demand from the load list. */
+  demandKwh: number;
+  /**
+   * Energy that actually displaces purchased power — min(delivered, demand).
+   *
+   * Nigeria has no general net-metering, so generation beyond what the loads
+   * consume earns nothing. Crediting benefit against raw generation would let
+   * an oversized array inflate its own payback, which is exactly backwards.
+   */
+  usefulKwh: number;
+  /** Fraction of generation that is surplus to demand. */
+  surplusFraction: number;
   capacityFactor: number;
 }
 
@@ -167,6 +179,7 @@ export function computeAnnualEnergy(
   sizingSettings: SizingSettings,
   econ: EconomicSettings
 ): EnergyResult {
+  const demandKwh = (sizing.audit.totalEnergyWh / 1000) * 365;
   const generatedKwh =
     (sizing.array.arrayWatts / 1000) *
     sizingSettings.peakSunHours *
@@ -180,8 +193,10 @@ export function computeAnnualEnergy(
   const deliveredKwh = generatedKwh * ((1 - stored) + stored * econ.roundTripEfficiency);
 
   const capacityFactor = (sizingSettings.peakSunHours * sizing.array.effectivePR) / 24;
+  const usefulKwh = Math.min(deliveredKwh, demandKwh);
+  const surplusFraction = deliveredKwh > 0 ? (deliveredKwh - usefulKwh) / deliveredKwh : 0;
 
-  return { generatedKwh, deliveredKwh, capacityFactor };
+  return { generatedKwh, deliveredKwh, demandKwh, usefulKwh, surplusFraction, capacityFactor };
 }
 
 // ---------------------------------------------------------------------------
@@ -286,12 +301,13 @@ export function computeAnnualBenefit(
 ): BenefitResult {
   if (econ.benefitBasis === 'selling-price') {
     // The paper's own framing: what would this have to sell for?
-    return { basis: 'selling-price', gridSavings: 0, dieselSavings: 0, total: energy.deliveredKwh * costPerKwh };
+    return { basis: 'selling-price', gridSavings: 0, dieselSavings: 0, total: energy.usefulKwh * costPerKwh };
   }
 
   // Avoided cost — what a Nigerian household or SME actually experiences.
-  const dieselKwh = energy.deliveredKwh * tariffs.generatorDisplacedFraction;
-  const gridKwh = energy.deliveredKwh - dieselKwh;
+  // Only energy the loads actually consume displaces a bill.
+  const dieselKwh = energy.usefulKwh * tariffs.generatorDisplacedFraction;
+  const gridKwh = energy.usefulKwh - dieselKwh;
   const gridSavings = gridKwh * tariffs.gridTariffPerKwh;
   const dieselSavings = dieselKwh * tariffs.generatorLitresPerKwh * tariffs.dieselPerLitre;
   return { basis: 'avoided-cost', gridSavings, dieselSavings, total: gridSavings + dieselSavings };
@@ -450,7 +466,9 @@ export function computeLcoe(
     const costT = baseAnnualCost + (isReplacementYear ? capital.battery : 0);
     discountedCost += ((1 - econ.taxRate) * costT) / (1 + discountRate) ** t;
 
-    const energyT = energy.deliveredKwh * (1 - econ.degradationRate) ** (t - 1);
+    // Useful, not generated: this LCOE is compared against a grid tariff, so
+    // it has to be the cost of a kWh the household actually gets to use.
+    const energyT = energy.usefulKwh * (1 - econ.degradationRate) ** (t - 1);
     discountedEnergyKwh += energyT / (1 + discountRate) ** t;
     finalYearKwh = energyT;
   }
@@ -619,6 +637,11 @@ export function computeEconomics(
   }
   if (!Number.isFinite(lcoe.value) || !Number.isFinite(costPerKwh)) {
     notes.push('Cost per kWh and LCOE cannot be computed because the system delivers no energy — check peak sun hours, panel rating and the load list.');
+  }
+  if (energy.surplusFraction > 0.05) {
+    notes.push(
+      `The array generates ${(energy.surplusFraction * 100).toFixed(0)}% more than the loads consume. With no net-metering that surplus earns nothing, so it is excluded from the benefit. Lowering the array factor of safety, or adding loads to use it, would improve the economics.`
+    );
   }
   if (roi.divergenceWarning) {
     notes.push(

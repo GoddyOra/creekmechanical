@@ -107,6 +107,18 @@ describe('Solar-specific adaptations', () => {
     assert.ok(degrading.lcoe.finalYearKwh < flat.lcoe.finalYearKwh, 'final-year output must be lower');
   });
 
+  test('benefit is earned on consumed energy, never on surplus generation', () => {
+    // A deliberately over-sized array: high factor of safety, low performance
+    // ratio penalty removed, so generation far exceeds the load.
+    const loads: LoadLine[] = [{ name: 'x', loadClass: 'capacitive', watts: 300, qty: 1, hours: 8, surge: 1 }];
+    const s = computeSizing(loads, { ...DEFAULT_SETTINGS, arrayFoS: 2, performanceRatio: 1, peakSunHours: 6 });
+    const e = computeEconomics(s, { ...DEFAULT_SETTINGS, arrayFoS: 2, performanceRatio: 1, peakSunHours: 6 }, DEFAULT_ECONOMIC_SETTINGS, DEFAULT_PRICES, DEFAULT_TARIFFS);
+    assert.ok(e.energy.deliveredKwh > e.energy.demandKwh, 'precondition: array over-produces');
+    assert.equal(e.energy.usefulKwh, e.energy.demandKwh, 'useful energy is capped at demand');
+    assert.ok(e.energy.surplusFraction > 0, 'surplus must be reported');
+    assert.ok(e.notes.some((n) => n.includes('more than the loads consume')), 'and explained — an oversized array must not inflate its own payback');
+  });
+
   test('(13) WACC reduces to the cost of equity when nothing is borrowed', () => {
     const loads: LoadLine[] = [{ name: 'x', loadClass: 'capacitive', watts: 500, qty: 1, hours: 8, surge: 1 }];
     const s = computeSizing(loads, DEFAULT_SETTINGS);
