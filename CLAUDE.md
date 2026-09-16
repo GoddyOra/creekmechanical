@@ -33,6 +33,69 @@ collection with a first batch of 10 published guides (see below).
 `/services/` is still "coming soon." Don't assume anything beyond what's
 listed here is already wired up.
 
+A Solar Power System Calculator is **built** (`/tools/solar-calculator/`) —
+design notes in [`docs/SOLAR_CALCULATOR_PLAN.md`](docs/SOLAR_CALCULATOR_PLAN.md).
+It sizes a complete off-grid/backup system (load audit → inverter → battery →
+array → charge controller → cables → breakers → SPD) and runs a
+techno-economic analysis (equations 1–14: NPV, BCR, payback, IRR, LCOE, WACC,
+ROI) adapted from Sobamowo & Ojolo (2018).
+
+### Solar calculator
+
+- `src/lib/solar/catalog.ts` — appliance catalog, R/C/I classification by name.
+- `src/lib/solar/engine.ts` — Stages 0–7, pure. All constants live on
+  `SizingSettings`; nothing is inlined.
+- `src/lib/solar/economics.ts` — equations (1)–(14b), pure.
+- `src/lib/solar/currency.ts`, `prices.ts` — 13 currencies (NGN base) and the
+  price/tariff books. **Both ship placeholder values with a `lastReviewed`
+  date and say so in the UI.** They are not quotes; don't present them as any.
+- `src/components/SolarCalculator.astro` — three-step island, same
+  `data-*` + `querySelector` shape as `StackUp.astro`.
+
+**The R/C/I load class changes the arithmetic, not just the label.** Resistive
+and capacitive loads contribute running power to the design total; inductive
+loads contribute running power × qty × surge. This is the course's rule and is
+confirmed by the whiteboard subtotals matching to the watt. Do not "simplify"
+it back to a single sum.
+
+**Two distinct surge quantities — don't merge them.** The class design total
+always counts every inductive unit at full surge. The inverter's *surge
+allowance* is the excess above running power, and is either the single largest
+unit's excess (`surgeConcurrency: 'single'`, the default — motors start one at
+a time) or every unit's excess summed (`'all'`). Both are computed across the
+whole load list, so entering "AC ×2" as one row or two rows gives identical
+answers; an earlier version got this wrong in both places.
+
+**Don't reproduce the source material's errors.** The plan documents seven
+contradictions in the course material and three in the cited paper (Table 17's
+NPV is a copy-paste error; equations (8) and (11) don't reconcile with the
+paper's own printed figures, while (9) and (10) reproduce exactly). The engine
+guards each. Read that plan before "fixing" a formula to match a whiteboard
+photo or a published table.
+
+**A QA pass on 2026-09-16 found and fixed ten defects** — see the "QA pass"
+section of the plan. Three mattered: the paper's printed equation (8) is
+missing an interest multiplier and returns no payback for any realistic
+project (the engine uses the corrected discounted-payback form); the battery
+replacement term was not reaching NPV/BCR/IRR because those took the O&M
+*fraction* rather than the absolute annual figure; and PV cables were sized
+from `P/Voc` while their breakers used `Isc`, leaving cables below the array's
+short-circuit current. **Cables and breakers are deliberately one function**
+(`sizeCircuits`) so the two can never disagree about a circuit's current —
+don't split them back apart. `sanitizeSettings` / `sanitizeEconomicSettings`
+clamp every input; both `computeSizing` and `computeEconomics` must call them,
+because they receive the settings object separately.
+
+**Verification is by disposable Node script**, not a test framework —
+`node --experimental-strip-types`, matching how the gear, Monte Carlo and GD&T
+maths were checked. Note that Node needs explicit `.ts` extensions on relative
+imports while the repo (and Vite) use extensionless; copy the lib to a temp
+dir and rewrite the imports rather than changing repo style.
+
+It's also the first feature that would need a Cloudflare Worker `main` script
+(for lead capture, still unbuilt); today `wrangler.jsonc` is assets-only, so
+no Worker code runs.
+
 ### Guides content collection
 
 - `src/content.config.ts` — the `guides` collection schema: `title`,

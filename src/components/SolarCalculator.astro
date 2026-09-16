@@ -1,0 +1,830 @@
+---
+import { APPLIANCE_CATALOG } from '../lib/solar/catalog';
+const applianceNames = [...new Set(APPLIANCE_CATALOG.map((a) => a.name))].sort();
+---
+
+<div class="solar viewer" data-solar>
+  <nav class="solar-steps" role="tablist">
+    <button type="button" class="solar-step active" data-step-btn="1" role="tab">1. Loads</button>
+    <button type="button" class="solar-step" data-step-btn="2" role="tab">2. System sizing</button>
+    <button type="button" class="solar-step" data-step-btn="3" role="tab">3. Techno-economics</button>
+  </nav>
+
+  <!-- ------------------------------------------------ STEP 1: LOADS -->
+  <section data-panel="1">
+    <p class="solar-lede">
+      List everything the system must run. Type an appliance name and the
+      tool suggests its load class, typical wattage and surge factor — check
+      each one and correct anything that doesn't match your actual equipment.
+    </p>
+
+    <div class="solar-add">
+      <label>
+        <span>Appliance</span>
+        <input type="text" data-add-name list="solar-appliances" placeholder="e.g. Split unit AC" />
+      </label>
+      <label>
+        <span>Watts each</span>
+        <input type="number" data-add-watts step="any" min="0" placeholder="1120" />
+      </label>
+      <label>
+        <span>Qty</span>
+        <input type="number" data-add-qty step="1" min="1" value="1" />
+      </label>
+      <label>
+        <span>Hours/day</span>
+        <input type="number" data-add-hours step="any" min="0" max="24" placeholder="8" />
+      </label>
+      <button type="button" class="ref-btn highlight" data-add-load>Add load</button>
+    </div>
+    <datalist id="solar-appliances">
+      {applianceNames.map((n) => <option value={n}></option>)}
+    </datalist>
+    <p class="solar-suggestion" data-suggestion hidden></p>
+
+    <div class="solar-table-wrap">
+      <table class="solar-table">
+        <thead>
+          <tr>
+            <th>Appliance</th>
+            <th>Class</th>
+            <th>Watts</th>
+            <th>Qty</th>
+            <th>Hours</th>
+            <th>Surge</th>
+            <th>Running W</th>
+            <th>Design W</th>
+            <th>Wh/day</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody data-loads-body></tbody>
+      </table>
+    </div>
+
+    <div class="solar-class-note">
+      <strong>Why the class matters:</strong> resistive and capacitive loads
+      count at their running power. Inductive loads — motors and compressors —
+      count at running power <em>multiplied by their surge factor</em>, because
+      they draw several times their rated power for a second or two at
+      start-up. Getting a load into the wrong class is the fastest way to
+      undersize an inverter.
+    </div>
+
+    <div class="stackup-results" data-audit hidden>
+      <div class="result-row"><span class="result-label">Resistive (R)</span><span class="result-value" data-sum-r>—</span></div>
+      <div class="result-row"><span class="result-label">Capacitive (C)</span><span class="result-value" data-sum-c>—</span></div>
+      <div class="result-row"><span class="result-label">Inductive (I) — includes surge</span><span class="result-value" data-sum-i>—</span></div>
+      <div class="result-row"><span class="result-label">Total running power</span><span class="result-value" data-sum-running>—</span></div>
+      <div class="result-row"><span class="result-label">Grand total design power</span><span class="result-value" data-sum-design>—</span></div>
+      <div class="result-row"><span class="result-label">Total daily energy</span><span class="result-value" data-sum-energy>—</span></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------ STEP 2: SIZING -->
+  <section data-panel="2" hidden>
+    <p class="solar-lede">
+      Every constant below is editable. Defaults follow the course material —
+      1.25 safety factor, 0.65 performance ratio, 550 W panels.
+    </p>
+    <div class="solar-fields" data-sizing-fields></div>
+
+    <div class="solar-results" data-sizing-results hidden>
+      <h3>Bill of materials</h3>
+      <div class="stackup-results">
+        <div class="result-row"><span class="result-label">Inverter</span><span class="result-value" data-r-inverter>—</span></div>
+        <div class="result-row"><span class="result-label">Battery bank</span><span class="result-value" data-r-battery>—</span></div>
+        <div class="result-row"><span class="result-label">PV array</span><span class="result-value" data-r-array>—</span></div>
+        <div class="result-row"><span class="result-label">Charge controller</span><span class="result-value" data-r-controller>—</span></div>
+        <div class="result-row"><span class="result-label">Surge protection</span><span class="result-value" data-r-spd>—</span></div>
+      </div>
+
+      <h3>Cables</h3>
+      <div class="solar-table-wrap">
+        <table class="solar-table"><thead><tr><th>Segment</th><th>Current</th><th>By volt drop</th><th>By ampacity</th><th>Use</th></tr></thead><tbody data-cables-body></tbody></table>
+      </div>
+
+      <h3>Breakers</h3>
+      <div class="solar-table-wrap">
+        <table class="solar-table"><thead><tr><th>Position</th><th>Calculated</th><th>Use</th><th>Notes</th></tr></thead><tbody data-breakers-body></tbody></table>
+      </div>
+
+      <div class="solar-warnings" data-warnings hidden></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------ STEP 3: ECONOMICS -->
+  <section data-panel="3" hidden>
+    <div class="solar-currency">
+      <label>
+        <span>Currency</span>
+        <select data-currency></select>
+      </label>
+      <label>
+        <span>Rate (per ₦1)</span>
+        <input type="number" data-rate step="any" min="0" />
+      </label>
+      <p class="solar-stale" data-stale></p>
+    </div>
+
+    <div class="notice solar-price-warning">
+      <strong>The prices below are placeholders, not quotes.</strong> They are
+      order-of-magnitude figures for the Nigerian market and every one is
+      editable. Replace them with real supplier prices before putting any
+      weight on a payback period or NPV — those outputs are only ever as good
+      as the costs you feed them.
+    </div>
+
+    <h3>Component prices</h3>
+    <div class="solar-fields" data-price-fields></div>
+
+    <h3>Tariffs and displaced cost</h3>
+    <div class="solar-fields" data-tariff-fields></div>
+
+    <h3>Economic parameters</h3>
+    <div class="solar-fields" data-econ-fields></div>
+
+    <div class="solar-results" data-econ-results hidden>
+      <h3>Headline</h3>
+      <div class="solar-headline">
+        <div class="solar-kpi"><span class="solar-kpi-value" data-kpi-roi>—</span><span class="solar-kpi-label">Simple ROI (14)</span></div>
+        <div class="solar-kpi"><span class="solar-kpi-value" data-kpi-roid>—</span><span class="solar-kpi-label">Discounted ROI (14a)</span></div>
+        <div class="solar-kpi"><span class="solar-kpi-value" data-kpi-payback>—</span><span class="solar-kpi-label">Payback (8)</span></div>
+        <div class="solar-kpi"><span class="solar-kpi-value" data-kpi-lcoe>—</span><span class="solar-kpi-label">LCOE (12)</span></div>
+      </div>
+
+      <h3>Capital cost — equation (1)</h3>
+      <div class="stackup-results" data-capital-rows></div>
+
+      <h3>Indicators — equations (2) to (14b)</h3>
+      <div class="stackup-results" data-indicator-rows></div>
+
+      <div class="solar-warnings" data-econ-notes></div>
+    </div>
+  </section>
+
+  <p class="viewer-error" data-error hidden></p>
+
+  <div class="viewer-exports" data-export-row hidden>
+    <button type="button" class="ref-btn" data-copy-report>Copy report</button>
+    <button type="button" class="ref-btn" data-download-report>Download report</button>
+    <button type="button" class="ref-btn" data-reset>Reset</button>
+  </div>
+</div>
+
+<script>
+  import {
+    computeSizing, DEFAULT_SETTINGS,
+    type LoadLine, type SizingSettings, type SizingResult,
+  } from '../lib/solar/engine';
+  import {
+    computeEconomics, DEFAULT_ECONOMIC_SETTINGS,
+    type EconomicSettings, type EconomicsResult,
+  } from '../lib/solar/economics';
+  import { DEFAULT_PRICES, DEFAULT_TARIFFS, PRICES_LAST_REVIEWED, type PriceBook, type TariffBook } from '../lib/solar/prices';
+  import { CURRENCIES, RATES_LAST_REVIEWED, findCurrency, fromNgn, toNgn, formatMoney, type Currency } from '../lib/solar/currency';
+  import { suggestAppliance, fallbackClass, defaultSurge, LOAD_CLASS_LABEL, LOAD_CLASS_NOTE, type LoadClass } from '../lib/solar/catalog';
+  import { formatSolarReport } from '../lib/solar/report';
+
+  const root = document.querySelector<HTMLElement>('[data-solar]')!;
+  const STORAGE_KEY = 'creek-solar-v1';
+
+  // ---- state -------------------------------------------------------------
+  const SEED_LOADS: LoadLine[] = [
+    { name: 'LED bulb', loadClass: 'resistive', watts: 10, qty: 20, hours: 6, surge: 1 },
+    { name: 'Television', loadClass: 'capacitive', watts: 100, qty: 2, hours: 6, surge: 1 },
+    { name: 'Fridge', loadClass: 'inductive', watts: 200, qty: 1, hours: 24, surge: 3 },
+    { name: 'Ceiling fan', loadClass: 'inductive', watts: 75, qty: 4, hours: 12, surge: 2 },
+  ];
+
+  let loads: LoadLine[] = SEED_LOADS.map((l) => ({ ...l }));
+  let settings: SizingSettings = { ...DEFAULT_SETTINGS };
+  let econ: EconomicSettings = { ...DEFAULT_ECONOMIC_SETTINGS };
+  let prices: PriceBook = { ...DEFAULT_PRICES };     // always NGN
+  let tariffs: TariffBook = { ...DEFAULT_TARIFFS };  // always NGN
+  let currency: Currency = { ...findCurrency('NGN') };
+  let sizing: SizingResult | null = null;
+  let economics: EconomicsResult | null = null;
+
+  // ---- field specs -------------------------------------------------------
+  interface FieldSpec {
+    key: string;
+    label: string;
+    unit?: string;
+    step?: number | 'any';
+    min?: number;
+    max?: number;
+    money?: boolean;
+    percent?: boolean;
+    options?: Array<{ value: string; label: string }>;
+    hint?: string;
+  }
+
+  const SIZING_FIELDS: FieldSpec[] = [
+    { key: 'peakSunHours', label: 'Peak sun hours', unit: 'h/day', step: 0.1, min: 0, hint: 'Annual average for your site. Nigeria is roughly 4–5.5.' },
+    { key: 'panelWatts', label: 'Panel rating', unit: 'W', step: 10, min: 1 },
+    { key: 'panelVoc', label: 'Panel Voc', unit: 'V', step: 0.1, min: 1 },
+    { key: 'panelIsc', label: 'Panel Isc', unit: 'A', step: 0.1, min: 0.1 },
+    { key: 'arrayPreset', label: 'Array method', options: [
+      { value: 'whiteboard', label: 'Course (PR 0.65)' },
+      { value: 'whatsapp', label: 'Simplified (PR 1.0)' },
+      { value: 'leonics', label: 'Leonics (FoS 1.30)' },
+    ], hint: 'All three are the same formula with different constants. The course method is the conservative one.' },
+    { key: 'performanceRatio', label: 'Performance ratio', step: 0.01, min: 0.1, max: 1 },
+    { key: 'arrayFoS', label: 'Array factor of safety', step: 0.05, min: 1 },
+    { key: 'safetyFactor', label: 'Load safety factor', step: 0.05, min: 1 },
+    { key: 'futureBuffer', label: 'Inverter future buffer', step: 0.05, min: 1 },
+    { key: 'inverterEfficiency', label: 'Inverter efficiency', step: 0.01, min: 0.5, max: 1 },
+    { key: 'surgeConcurrency', label: 'Multi-unit surge', options: [
+      { value: 'single', label: 'One unit starts at a time' },
+      { value: 'all', label: 'All units cold-start together' },
+    ], hint: 'Pick "all" if a grid outage can restart a bank of compressors together.' },
+    { key: 'inverterBasis', label: 'Inverter sized by', options: [
+      { value: 'largest-surge', label: 'Largest single motor surge' },
+      { value: 'class-total', label: 'Class total (every motor at once)' },
+    ], hint: 'The class total sums every inductive surge. Realistic for a simultaneous cold start, very conservative otherwise.' },
+    { key: 'batteryChemistry', label: 'Battery chemistry', options: [
+      { value: 'lithium', label: 'Lithium LiFePO4' },
+      { value: 'lead-acid', label: 'Lead-acid / tubular' },
+    ] },
+    { key: 'depthOfDischarge', label: 'Depth of discharge', step: 0.05, min: 0.1, max: 1 },
+    { key: 'batteryUnitVolts', label: 'Battery unit voltage', unit: 'V', step: 12, min: 2 },
+    { key: 'batteryUnitAh', label: 'Battery unit capacity', unit: 'Ah', step: 10, min: 1 },
+    { key: 'daysAutonomy', label: 'Days of autonomy', step: 0.5, min: 0.5 },
+    { key: 'nightFraction', label: 'Fraction drawn from battery', step: 0.05, min: 0, max: 1, hint: '0.6–0.7 typical; 1.0 for full off-grid autonomy.' },
+    { key: 'lossFactor', label: 'Storage loss factor', step: 0.01, min: 1 },
+    { key: 'controllerMaxPvVolts', label: 'Controller max PV volts', unit: 'V', step: 50, min: 50 },
+    { key: 'acVolts', label: 'Mains voltage', unit: 'V', step: 10, min: 100 },
+    { key: 'dcDropLimit', label: 'DC volt-drop limit', percent: true, step: 0.005, min: 0.005 },
+    { key: 'acDropLimit', label: 'AC volt-drop limit', percent: true, step: 0.005, min: 0.005 },
+    { key: 'highLightning', label: 'High-lightning site', options: [
+      { value: 'false', label: 'No' },
+      { value: 'true', label: 'Yes (Port Harcourt and similar)' },
+    ] },
+  ];
+
+  const PRICE_FIELDS: FieldSpec[] = [
+    { key: 'panelPerWatt', label: 'Panels', unit: '/W', money: true, step: 'any' },
+    { key: 'inverterPerWatt', label: 'Inverter', unit: '/W', money: true, step: 'any' },
+    { key: 'batteryPerWhLithium', label: 'Lithium battery', unit: '/Wh', money: true, step: 'any' },
+    { key: 'batteryPerWhLeadAcid', label: 'Lead-acid battery', unit: '/Wh', money: true, step: 'any' },
+    { key: 'controllerPerAmp', label: 'Charge controller', unit: '/A', money: true, step: 'any' },
+    { key: 'cablePerMetreMm2', label: 'Cable', unit: '/m/mm²', money: true, step: 'any' },
+    { key: 'breakerEach', label: 'Breaker', unit: 'each', money: true, step: 'any' },
+    { key: 'spdEach', label: 'Surge protector', unit: 'each', money: true, step: 'any' },
+    { key: 'mountingPerPanel', label: 'Mounting', unit: '/panel', money: true, step: 'any' },
+    { key: 'installFraction', label: 'Installation labour', percent: true, step: 0.01, min: 0 },
+    { key: 'contingencyFraction', label: 'Contingency & freight', percent: true, step: 0.01, min: 0 },
+  ];
+
+  const TARIFF_FIELDS: FieldSpec[] = [
+    { key: 'gridTariffPerKwh', label: 'Grid tariff displaced', unit: '/kWh', money: true, step: 'any' },
+    { key: 'dieselPerLitre', label: 'Diesel price', unit: '/litre', money: true, step: 'any' },
+    { key: 'generatorLitresPerKwh', label: 'Generator fuel burn', unit: 'L/kWh', step: 0.05, min: 0 },
+    { key: 'generatorDisplacedFraction', label: 'Energy replacing a generator', percent: true, step: 0.05, min: 0, max: 1 },
+  ];
+
+  const ECON_FIELDS: FieldSpec[] = [
+    { key: 'lifeYears', label: 'System life', unit: 'yr', step: 1, min: 1 },
+    { key: 'batteryLifeYears', label: 'Battery life', unit: 'yr', step: 1, min: 1, hint: 'Drives the replacement term added to equation (3).' },
+    { key: 'omFraction', label: 'Annual O&M', percent: true, step: 0.005, min: 0 },
+    { key: 'realRateOfReturn', label: 'Real rate of return (I)', percent: true, step: 0.01 },
+    { key: 'degradationRate', label: 'Panel degradation', percent: true, step: 0.001, min: 0, hint: 'Year-indexes equation (12).' },
+    { key: 'roundTripEfficiency', label: 'Battery round-trip efficiency', step: 0.01, min: 0.5, max: 1 },
+    { key: 'auxiliaryPercent', label: 'Auxiliary consumption', unit: '%', step: 0.5, min: 0 },
+    { key: 'marginalLossFactor', label: 'Marginal loss factor', step: 0.01, min: 0 },
+    { key: 'annualLabour', label: 'Annual labour', money: true, step: 'any', min: 0 },
+    { key: 'annualHours', label: 'Annual hours (N)', unit: 'h', step: 1, min: 1 },
+    { key: 'equityShare', label: 'Equity share', percent: true, step: 0.05, min: 0, max: 1 },
+    { key: 'costOfEquity', label: 'Cost of equity', percent: true, step: 0.01, min: 0 },
+    { key: 'costOfDebt', label: 'Cost of debt', percent: true, step: 0.01, min: 0 },
+    { key: 'taxRate', label: 'Tax rate', percent: true, step: 0.01, min: 0, max: 1, hint: 'Zero for a residential system — there is no tax shield to claim.' },
+    { key: 'hybridDieselLitresPerYear', label: 'Backup generator diesel', unit: 'L/yr', step: 10, min: 0, hint: 'Non-zero makes equation (5) non-zero.' },
+    { key: 'benefitBasis', label: 'Benefit basis', options: [
+      { value: 'avoided-cost', label: 'Avoided cost (grid + diesel)' },
+      { value: 'selling-price', label: 'Required selling price' },
+    ] },
+  ];
+
+  // ---- element refs ------------------------------------------------------
+  const loadsBody = root.querySelector<HTMLTableSectionElement>('[data-loads-body]')!;
+  const errorEl = root.querySelector<HTMLElement>('[data-error]')!;
+  const suggestionEl = root.querySelector<HTMLElement>('[data-suggestion]')!;
+  const exportRow = root.querySelector<HTMLElement>('[data-export-row]')!;
+  const auditBox = root.querySelector<HTMLElement>('[data-audit]')!;
+  const sizingResults = root.querySelector<HTMLElement>('[data-sizing-results]')!;
+  const econResults = root.querySelector<HTMLElement>('[data-econ-results]')!;
+  const currencySelect = root.querySelector<HTMLSelectElement>('[data-currency]')!;
+  const rateInput = root.querySelector<HTMLInputElement>('[data-rate]')!;
+
+  const addName = root.querySelector<HTMLInputElement>('[data-add-name]')!;
+  const addWatts = root.querySelector<HTMLInputElement>('[data-add-watts]')!;
+  const addQty = root.querySelector<HTMLInputElement>('[data-add-qty]')!;
+  const addHours = root.querySelector<HTMLInputElement>('[data-add-hours]')!;
+
+  const money = (ngn: number) => formatMoney(fromNgn(ngn, currency), currency);
+  const kw = (w: number) => (Number.isFinite(w) ? `${(w / 1000).toFixed(2)} kW` : '—');
+  /** Never render "NaN" or "Infinity" at a user. */
+  const num = (v: number, digits = 2, suffix = '') =>
+    Number.isFinite(v) ? `${v.toFixed(digits)}${suffix}` : '—';
+
+  // ---- step navigation ---------------------------------------------------
+  root.querySelectorAll<HTMLButtonElement>('[data-step-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const step = btn.dataset.stepBtn!;
+      root.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => {
+        p.hidden = p.dataset.panel !== step;
+      });
+      root.querySelectorAll<HTMLElement>('[data-step-btn]').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+    });
+  });
+
+  // ---- load rows ---------------------------------------------------------
+  function renderLoads() {
+    loadsBody.replaceChildren();
+    loads.forEach((load, index) => {
+      const tr = document.createElement('tr');
+      tr.dataset.index = String(index);
+
+      const cell = (child: HTMLElement) => {
+        const td = document.createElement('td');
+        td.appendChild(child);
+        return td;
+      };
+      const numberInput = (value: number, key: string, step = 'any', min = '0') => {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = step;
+        input.min = min;
+        input.value = String(value);
+        input.dataset.field = key;
+        return input;
+      };
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = load.name;
+      nameInput.dataset.field = 'name';
+      tr.appendChild(cell(nameInput));
+
+      const classSelect = document.createElement('select');
+      classSelect.dataset.field = 'loadClass';
+      (['resistive', 'capacitive', 'inductive'] as LoadClass[]).forEach((c) => {
+        classSelect.appendChild(new Option(LOAD_CLASS_LABEL[c], c, false, c === load.loadClass));
+      });
+      classSelect.title = LOAD_CLASS_NOTE[load.loadClass];
+      tr.appendChild(cell(classSelect));
+
+      tr.appendChild(cell(numberInput(load.watts, 'watts')));
+      tr.appendChild(cell(numberInput(load.qty, 'qty', '1', '1')));
+      tr.appendChild(cell(numberInput(load.hours, 'hours')));
+
+      const surgeInput = numberInput(load.surge, 'surge', '0.5', '1');
+      surgeInput.disabled = load.loadClass !== 'inductive';
+      surgeInput.title = load.loadClass !== 'inductive'
+        ? 'Only inductive loads carry a surge factor into the design total.'
+        : 'Start-up multiple of running watts.';
+      tr.appendChild(cell(surgeInput));
+
+      // Values are filled by refreshComputedCells() from the engine's own
+      // audit — deliberately NOT recomputed here, so the table can never
+      // drift from the engine's arithmetic.
+      for (const cls of ['solar-num', load.loadClass === 'inductive' ? 'solar-num solar-surge' : 'solar-num', 'solar-num']) {
+        const td = document.createElement('td');
+        td.className = cls;
+        td.textContent = '—';
+        tr.appendChild(td);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'stackup-remove-row';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', `Remove ${load.name}`);
+      removeBtn.addEventListener('click', () => {
+        loads.splice(index, 1);
+        recompute();
+      });
+      tr.appendChild(cell(removeBtn));
+
+      loadsBody.appendChild(tr);
+    });
+  }
+
+  loadsBody.addEventListener('input', (event) => {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    const field = target.dataset.field;
+    const row = target.closest<HTMLTableRowElement>('tr');
+    if (!field || !row) return;
+    const load = loads[Number(row.dataset.index)];
+    if (!load) return;
+
+    if (field === 'name') {
+      load.name = target.value;
+    } else if (field === 'loadClass') {
+      load.loadClass = target.value as LoadClass;
+      if (load.loadClass !== 'inductive') load.surge = 1;
+      else if (load.surge <= 1) load.surge = defaultSurge('inductive');
+      recompute();
+      return;
+    } else {
+      const value = parseFloat(target.value);
+      if (Number.isFinite(value)) (load as unknown as Record<string, number>)[field] = value;
+    }
+    recompute({ keepFocus: true });
+  });
+
+  // ---- add-load form with classification suggestion ----------------------
+  function applySuggestion() {
+    const name = addName.value.trim();
+    if (!name) { suggestionEl.hidden = true; return; }
+    const hit = suggestAppliance(name);
+    if (hit) {
+      if (!addWatts.value) addWatts.value = String(hit.watts);
+      if (!addHours.value) addHours.value = String(hit.hours);
+      suggestionEl.hidden = false;
+      suggestionEl.innerHTML = `Suggested: <strong>${LOAD_CLASS_LABEL[hit.loadClass]}</strong>${hit.loadClass === 'inductive' ? `, surge ×${hit.surge}` : ''} — ${LOAD_CLASS_NOTE[hit.loadClass]} You can change it in the table after adding.`;
+      suggestionEl.dataset.class = hit.loadClass;
+      suggestionEl.dataset.surge = String(hit.surge);
+    } else {
+      const guess = fallbackClass(name);
+      suggestionEl.hidden = false;
+      suggestionEl.innerHTML = `No catalog match. Guessing <strong>${LOAD_CLASS_LABEL[guess]}</strong> — please confirm or change it in the table.`;
+      suggestionEl.dataset.class = guess;
+      suggestionEl.dataset.surge = String(defaultSurge(guess));
+    }
+  }
+
+  addName.addEventListener('input', applySuggestion);
+  addName.addEventListener('change', applySuggestion);
+
+  root.querySelector<HTMLButtonElement>('[data-add-load]')!.addEventListener('click', () => {
+    const name = addName.value.trim();
+    const watts = parseFloat(addWatts.value);
+    const qty = parseInt(addQty.value, 10);
+    const hours = parseFloat(addHours.value);
+    if (!name) return showError('Give the appliance a name.');
+    if (!Number.isFinite(watts) || watts <= 0) return showError('Enter the running watts for this appliance.');
+    if (!Number.isFinite(qty) || qty < 1) return showError('Quantity must be at least 1.');
+    if (!Number.isFinite(hours) || hours < 0 || hours > 24) return showError('Hours per day must be between 0 and 24.');
+
+    const loadClass = (suggestionEl.dataset.class as LoadClass) ?? fallbackClass(name);
+    const surge = loadClass === 'inductive' ? Number(suggestionEl.dataset.surge ?? 3) : 1;
+    loads.push({ name, loadClass, watts, qty, hours, surge });
+
+    addName.value = '';
+    addWatts.value = '';
+    addQty.value = '1';
+    addHours.value = '';
+    suggestionEl.hidden = true;
+    clearError();
+    recompute();
+    addName.focus();
+  });
+
+  // ---- generic field rendering -------------------------------------------
+  function renderFields(container: HTMLElement, specs: FieldSpec[], target: Record<string, unknown>) {
+    container.replaceChildren();
+    for (const spec of specs) {
+      const wrap = document.createElement('label');
+      wrap.className = 'solar-field';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'solar-field-label';
+      labelSpan.textContent = spec.unit ? `${spec.label} (${spec.money ? currency.symbol + spec.unit : spec.unit})` : spec.label;
+      wrap.appendChild(labelSpan);
+
+      if (spec.options) {
+        const select = document.createElement('select');
+        select.dataset.key = spec.key;
+        for (const opt of spec.options) {
+          select.appendChild(new Option(opt.label, opt.value, false, String(target[spec.key]) === opt.value));
+        }
+        select.addEventListener('change', () => {
+          const raw = select.value;
+          target[spec.key] = raw === 'true' ? true : raw === 'false' ? false : raw;
+          recompute();
+        });
+        wrap.appendChild(select);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = String(spec.step ?? 'any');
+        // Percent fields display x100, so their bounds and step must scale too
+        // — otherwise the browser rejects a legitimate 100% against max="1".
+        const scale = spec.percent ? 100 : 1;
+        if (spec.min !== undefined) input.min = String(spec.min * scale);
+        if (spec.max !== undefined) input.max = String(spec.max * scale);
+
+        const raw = Number(target[spec.key]);
+        input.value = spec.money
+          // toPrecision, not toFixed: at 2 dp a ₦900 cable price becomes $0.58
+          // and converting back loses ~1%. Six significant figures round-trips.
+          ? String(Number(fromNgn(raw, currency).toPrecision(6)))
+          : spec.percent
+            ? String(Number((raw * 100).toFixed(4)))
+            : String(raw);
+        if (spec.percent) {
+          input.step = String(Number(spec.step ?? 0.01) * 100);
+          labelSpan.textContent = `${spec.label} (%)`;
+        }
+
+        input.addEventListener('input', () => {
+          const value = parseFloat(input.value);
+          if (!Number.isFinite(value)) return;
+          target[spec.key] = spec.money ? toNgn(value, currency) : spec.percent ? value / 100 : value;
+          recompute({ keepFocus: true });
+        });
+        wrap.appendChild(input);
+      }
+
+      if (spec.hint) {
+        const hint = document.createElement('small');
+        hint.className = 'solar-field-hint';
+        hint.textContent = spec.hint;
+        wrap.appendChild(hint);
+      }
+      container.appendChild(wrap);
+    }
+  }
+
+  // ---- currency ----------------------------------------------------------
+  for (const c of CURRENCIES) {
+    currencySelect.appendChild(new Option(`${c.code} — ${c.name}`, c.code, false, c.code === currency.code));
+  }
+  currencySelect.addEventListener('change', () => {
+    currency = { ...findCurrency(currencySelect.value) };
+    rateInput.value = String(currency.perNgn);
+    renderAllFields();
+    recompute();
+  });
+  rateInput.value = String(currency.perNgn);
+  rateInput.addEventListener('input', () => {
+    const value = parseFloat(rateInput.value);
+    if (Number.isFinite(value) && value > 0) {
+      currency.perNgn = value;
+      renderAllFields();
+      recompute();
+    }
+  });
+  root.querySelector<HTMLElement>('[data-stale]')!.textContent =
+    `Prices reviewed ${PRICES_LAST_REVIEWED}; exchange rates ${RATES_LAST_REVIEWED}. Both are editable starting points, not live data.`;
+
+  function renderAllFields() {
+    renderFields(root.querySelector<HTMLElement>('[data-sizing-fields]')!, SIZING_FIELDS, settings as unknown as Record<string, unknown>);
+    renderFields(root.querySelector<HTMLElement>('[data-price-fields]')!, PRICE_FIELDS, prices as unknown as Record<string, unknown>);
+    renderFields(root.querySelector<HTMLElement>('[data-tariff-fields]')!, TARIFF_FIELDS, tariffs as unknown as Record<string, unknown>);
+    renderFields(root.querySelector<HTMLElement>('[data-econ-fields]')!, ECON_FIELDS, econ as unknown as Record<string, unknown>);
+  }
+
+  // ---- results rendering -------------------------------------------------
+  function row(label: string, value: string): HTMLElement {
+    const div = document.createElement('div');
+    div.className = 'result-row';
+    const l = document.createElement('span');
+    l.className = 'result-label';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.className = 'result-value';
+    v.textContent = value;
+    div.append(l, v);
+    return div;
+  }
+
+  /**
+   * Update the computed columns without rebuilding the row, so an input keeps
+   * focus while the numbers beside it stay live.
+   */
+  function refreshComputedCells(result: SizingResult) {
+    const rows = loadsBody.querySelectorAll<HTMLTableRowElement>('tr');
+    rows.forEach((tr) => {
+      const line = result.audit.lines[Number(tr.dataset.index)];
+      if (!line) return;
+      const cells = tr.querySelectorAll<HTMLTableCellElement>('td.solar-num');
+      if (cells.length < 3) return;
+      cells[0].textContent = line.runningWatts.toFixed(0);
+      cells[1].textContent = line.designWatts.toFixed(0);
+      cells[2].textContent = line.energyWh.toFixed(0);
+      cells[1].classList.toggle('solar-surge', line.loadClass === 'inductive');
+    });
+  }
+
+  function renderSizing(result: SizingResult) {
+    const a = result.audit;
+    auditBox.hidden = false;
+    const set = (sel: string, text: string) => { root.querySelector(sel)!.textContent = text; };
+    set('[data-sum-r]', `${a.byClass.resistive.runningWatts.toFixed(0)} W`);
+    set('[data-sum-c]', `${a.byClass.capacitive.runningWatts.toFixed(0)} W`);
+    set('[data-sum-i]', `${a.byClass.inductive.runningWatts.toFixed(0)} W running → ${a.byClass.inductive.designWatts.toFixed(0)} W with surge`);
+    set('[data-sum-running]', kw(a.totalRunningWatts));
+    set('[data-sum-design]', kw(a.grandTotalDesignWatts));
+    set('[data-sum-energy]', num(a.totalEnergyWh / 1000, 2, ' kWh/day'));
+
+    sizingResults.hidden = false;
+    set('[data-r-inverter]', `${(result.inverter.ratedWatts / 1000).toFixed(1)} kW @ ${result.inverter.systemVolts} V — set by ${result.inverter.governedBy}`);
+    set('[data-r-battery]', `${(result.battery.installedWh / 1000).toFixed(1)} kWh — ${result.battery.unitCount} × ${settings.batteryUnitVolts} V ${settings.batteryUnitAh} Ah (${result.battery.seriesCount}S × ${result.battery.parallelStrings}P)`);
+    set('[data-r-array]', `${(result.array.arrayWatts / 1000).toFixed(2)} kWp — ${result.array.panelCount} × ${settings.panelWatts} W (${result.array.seriesPerString}S × ${result.array.parallelStrings}P, string Voc ${result.array.stringVoc.toFixed(0)} V)`);
+    set('[data-r-controller]', `${result.controller.unitCount > 1 ? `${result.controller.unitCount} × ` : ''}${result.controller.ratedAmps} A ${result.controller.type} — ${result.controller.exactAmps.toFixed(1)} A calculated`);
+    set('[data-r-spd]', `${result.spd.type}, ${result.spd.kA} kA — ${result.spd.dcVolts} V DC / ${result.spd.acVolts} V AC`);
+
+    const cablesBody = root.querySelector<HTMLTableSectionElement>('[data-cables-body]')!;
+    cablesBody.replaceChildren();
+    for (const c of result.cables) {
+      const tr = document.createElement('tr');
+      for (const text of [c.name, `${c.amps.toFixed(1)} A`, `${c.voltDropMm2.toFixed(2)} mm²`, `${c.ampacityMm2} mm²`, `${c.requiredMm2} mm²`]) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        tr.appendChild(td);
+      }
+      tr.lastElementChild!.classList.add('solar-strong');
+      tr.title = `Governed by ${c.governedBy}`;
+      cablesBody.appendChild(tr);
+    }
+
+    const breakersBody = root.querySelector<HTMLTableSectionElement>('[data-breakers-body]')!;
+    breakersBody.replaceChildren();
+    for (const b of result.breakers) {
+      const tr = document.createElement('tr');
+      for (const text of [b.name, `${b.exactAmps.toFixed(1)} A`, `${b.ratedAmps} A ${b.kind}`, b.note]) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        tr.appendChild(td);
+      }
+      breakersBody.appendChild(tr);
+    }
+
+    const warnBox = root.querySelector<HTMLElement>('[data-warnings]')!;
+    warnBox.replaceChildren();
+    warnBox.hidden = result.warnings.length === 0;
+    for (const w of result.warnings) {
+      const p = document.createElement('p');
+      p.textContent = `⚠ ${w}`;
+      warnBox.appendChild(p);
+    }
+  }
+
+  function renderEconomics(e: EconomicsResult) {
+    econResults.hidden = false;
+    const set = (sel: string, text: string) => { root.querySelector(sel)!.textContent = text; };
+
+    set('[data-kpi-roi]', num(e.roi.simple, 0, '%'));
+    set('[data-kpi-roid]', num(e.roi.discounted, 0, '%'));
+    set('[data-kpi-payback]', e.payback.years === null ? 'never' : num(e.payback.years, 1, ' yr'));
+    set('[data-kpi-lcoe]', Number.isFinite(e.lcoe.value) ? `${money(e.lcoe.value)}/kWh` : '—');
+
+    const roidEl = root.querySelector<HTMLElement>('[data-kpi-roid]')!;
+    roidEl.classList.toggle('solar-negative', e.roi.discounted < 0);
+
+    const capitalBox = root.querySelector<HTMLElement>('[data-capital-rows]')!;
+    capitalBox.replaceChildren(
+      row('Panels', money(e.capital.panels)),
+      row('Inverter', money(e.capital.inverter)),
+      row('Battery', money(e.capital.battery)),
+      row('Charge controller', money(e.capital.controller)),
+      row('Cables, breakers, SPD', money(e.capital.balanceOfSystem)),
+      row('Mounting', money(e.capital.mounting)),
+      row('Installation', money(e.capital.installation)),
+      row('Contingency & freight', money(e.capital.contingency)),
+      row('Total capital cost (C)', money(e.capital.total)),
+    );
+
+    const indicatorBox = root.querySelector<HTMLElement>('[data-indicator-rows]')!;
+    indicatorBox.replaceChildren(
+      row('(2) Annual energy delivered', num(e.energy.deliveredKwh, 0, ' kWh/yr')),
+      row('(3) Annual O&M (M)', `${money(e.om.total)} — incl. ${money(e.om.batteryReplacementAnnualised)} battery replacement`),
+      row('(4) Annual revenue (AR)', money(e.annualRevenue)),
+      row('(5) Fuel cost', e.fuelCost === 0 ? `${money(0)} — solar has no fuel` : money(e.fuelCost)),
+      row('(6) Cost per kWh', `${money(e.costPerKwh)}/kWh`),
+      row('(7) Annual benefit (B_A)', `${money(e.benefit.total)} (${e.benefit.basis})`),
+      row('(8) Payback period', e.payback.years === null ? `never — ${e.payback.reason ?? ''}` : num(e.payback.years, 2, ' yr')),
+      row('(9) Net present value', money(e.npv)),
+      row('(10) Benefit cost ratio', Number.isFinite(e.bcr) ? `${e.bcr.toFixed(3)} — ${e.bcr > 1 ? 'acceptable' : 'below 1, not acceptable'}` : '—'),
+      row('(11) Internal rate of return', e.irr === null ? 'no real solution' : num(e.irr * 100, 2, '%')),
+      row('(12) LCOE', `${money(e.lcoe.value)}/kWh`),
+      row('(13) Discount rate (WACC)', num(e.discountRate * 100, 2, '%')),
+      row('(14) Simple ROI', num(e.roi.simple, 1, '%')),
+      row('(14a) Discounted ROI', num(e.roi.discounted, 1, '%')),
+      row('(14b) Annual ROI', num(e.roi.annual, 1, '%')),
+    );
+
+    const notesBox = root.querySelector<HTMLElement>('[data-econ-notes]')!;
+    notesBox.replaceChildren();
+    for (const n of e.notes) {
+      const p = document.createElement('p');
+      p.textContent = n;
+      notesBox.appendChild(p);
+    }
+  }
+
+  // ---- recompute ---------------------------------------------------------
+  function recompute(opts: { keepFocus?: boolean } = {}) {
+    if (loads.length === 0) {
+      auditBox.hidden = true;
+      sizingResults.hidden = true;
+      econResults.hidden = true;
+      exportRow.hidden = true;
+      if (!opts.keepFocus) renderLoads();
+      return;
+    }
+
+    sizing = computeSizing(loads, settings);
+    economics = computeEconomics(sizing, settings, econ, prices, tariffs);
+
+    if (!opts.keepFocus) renderLoads();
+    refreshComputedCells(sizing);
+    renderSizing(sizing);
+    renderEconomics(economics);
+    exportRow.hidden = false;
+    persist();
+  }
+
+  // ---- persistence -------------------------------------------------------
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ loads, settings, econ, prices, tariffs, currency: currency.code }));
+    } catch {
+      // Storage unavailable (private window, blocked site data) — the tool
+      // works fine without it.
+    }
+  }
+
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (Array.isArray(saved.loads) && saved.loads.length) loads = saved.loads;
+      if (saved.settings) settings = { ...DEFAULT_SETTINGS, ...saved.settings };
+      if (saved.econ) econ = { ...DEFAULT_ECONOMIC_SETTINGS, ...saved.econ };
+      if (saved.prices) prices = { ...DEFAULT_PRICES, ...saved.prices };
+      if (saved.tariffs) tariffs = { ...DEFAULT_TARIFFS, ...saved.tariffs };
+      if (saved.currency) currency = { ...findCurrency(saved.currency) };
+    } catch {
+      // Corrupt or unreadable — fall back to defaults silently.
+    }
+  }
+
+  // ---- errors ------------------------------------------------------------
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+  function clearError() {
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+  }
+
+  // ---- export ------------------------------------------------------------
+  function reportText(): string {
+    if (!sizing) return '';
+    return formatSolarReport(sizing, settings, economics, econ, currency);
+  }
+
+  root.querySelector<HTMLButtonElement>('[data-copy-report]')!.addEventListener('click', async (event) => {
+    const btn = event.currentTarget as HTMLButtonElement;
+    const text = reportText();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard API unavailable in this browser context.
+    }
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+
+  root.querySelector<HTMLButtonElement>('[data-download-report]')!.addEventListener('click', () => {
+    const text = reportText();
+    if (!text) return;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'solar-sizing-report.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  root.querySelector<HTMLButtonElement>('[data-reset]')!.addEventListener('click', () => {
+    loads = SEED_LOADS.map((l) => ({ ...l }));
+    settings = { ...DEFAULT_SETTINGS };
+    econ = { ...DEFAULT_ECONOMIC_SETTINGS };
+    prices = { ...DEFAULT_PRICES };
+    tariffs = { ...DEFAULT_TARIFFS };
+    currency = { ...findCurrency('NGN') };
+    currencySelect.value = currency.code;
+    rateInput.value = String(currency.perNgn);
+    renderAllFields();
+    recompute();
+  });
+
+  // ---- boot --------------------------------------------------------------
+  restore();
+  currencySelect.value = currency.code;
+  rateInput.value = String(currency.perNgn);
+  renderAllFields();
+  recompute();
+</script>

@@ -982,3 +982,308 @@ main {
   height: auto;
   display: block;
 }
+
+/* ---------------------------------------------------------------- Solar
+   Solar power system calculator (tools/solar-calculator). Reuses .viewer,
+   .stackup-results, .result-row and .ref-btn; everything below is specific
+   to the multi-step wizard, the load table and the economics readout. */
+
+.solar-steps {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.75rem;
+}
+
+.solar-step {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.solar-step:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.solar-step.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.solar-lede {
+  font-size: 0.92rem;
+  color: var(--color-muted);
+  margin: 0 0 1rem;
+  max-width: 62ch;
+}
+
+.solar-add {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.solar-add label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.solar-add input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  min-width: 6rem;
+}
+
+.solar-add input[data-add-name] {
+  min-width: 14rem;
+}
+
+.solar-suggestion {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-accent);
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  margin: 0 0 1rem;
+}
+
+.solar-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.solar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.solar-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.solar-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.solar-table input,
+.solar-table select {
+  width: 100%;
+  min-width: 5rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+}
+
+.solar-table input:disabled {
+  opacity: 0.45;
+}
+
+.solar-table td.solar-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.solar-table td.solar-surge {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.solar-table td.solar-strong {
+  font-weight: 600;
+}
+
+.solar-class-note {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  max-width: 70ch;
+}
+
+.solar-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.solar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.solar-field-label {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.solar-field input,
+.solar-field select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+.solar-field-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.solar-currency {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.solar-currency label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.solar-currency select,
+.solar-currency input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  min-width: 10rem;
+}
+
+.solar-stale {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin: 0;
+  flex-basis: 100%;
+}
+
+.solar-price-warning {
+  margin-bottom: 1.25rem;
+}
+
+.solar-results h3,
+.solar section h3 {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.6rem;
+}
+
+.solar-headline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.solar-kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.solar-kpi-value {
+  font-size: 1.45rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+  line-height: 1.1;
+}
+
+.solar-kpi-value.solar-negative {
+  color: #c0392b;
+}
+
+.solar-kpi-label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.solar-warnings {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+}
+
+.solar-warnings p {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin: 0 0 0.6rem;
+  line-height: 1.5;
+}
+
+.solar-warnings p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .solar-add label,
+  .solar-add input {
+    width: 100%;
+  }
+
+  .solar-fields {
+    grid-template-columns: 1fr;
+  }
+}

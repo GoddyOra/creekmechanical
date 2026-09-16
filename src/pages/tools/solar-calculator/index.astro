@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SolarCalculator from '../../../components/SolarCalculator.astro';
+---
+
+<BaseLayout
+  title="Solar Power System Calculator"
+  description="Size a complete off-grid or backup solar system — inverter, battery bank, panels, charge controller, cables, breakers and surge protection — then run a full techno-economic analysis with NPV, payback, IRR, LCOE and ROI. Runs entirely in your browser."
+>
+  <article class="tool-page wrap">
+    <h1>Solar Power System Calculator</h1>
+    <p class="tool-intro">
+      Build a load list, get a complete bill of materials, then find out
+      whether the system actually pays for itself. The sizing chain runs load
+      audit → inverter → battery bank → PV array → charge controller → cables
+      → breakers → surge protection, and the economics layer works through
+      capital cost, LCOE, NPV, benefit-cost ratio, payback, IRR and return on
+      investment. Everything runs in your browser — no account, no upload.
+    </p>
+
+    <SolarCalculator />
+
+    <div class="notice">
+      <p>
+        <strong>Load class changes the arithmetic, not just the label.</strong>
+        Resistive loads (heaters, filament lighting) and capacitive loads
+        (electronics with switch-mode supplies) count at their running power.
+        Inductive loads — motors, compressors, pumps — count at running power
+        multiplied by their start-up surge factor, because they briefly draw
+        several times their rated power when they switch on. The tool suggests
+        a class from the appliance name; confirm or correct it, because
+        misclassifying a motor is the fastest way to undersize an inverter.
+      </p>
+      <p>
+        <strong>Costs are placeholders until you replace them.</strong> The
+        shipped component prices and exchange rates are order-of-magnitude
+        starting points for the Nigerian market, carrying the date they were
+        last reviewed. They are not quotes, and solar pricing moves fast. A
+        payback period or NPV is only ever as good as the prices behind it, so
+        put your own supplier figures in before relying on any of it.
+      </p>
+      <p>
+        This tool sizes equipment and models economics. It is not a substitute
+        for a design signed off by a qualified electrical engineer, and
+        nothing here authorises anyone to carry out electrical installation
+        work. DC arc faults and battery short circuits are dangerous.
+      </p>
+    </div>
+
+    <h2>How the calculation works</h2>
+
+    <h3>Sizing</h3>
+    <p>
+      The load audit splits your appliances by class and totals them — R and C
+      at running power, I at running power times surge — then applies a safety
+      factor to give the design load. The inverter is sized to the largest of
+      three competing demands: the continuous load with its future buffer and
+      efficiency allowance, the continuous load plus the largest single motor
+      surge, and the class-based design total. The battery bank comes from
+      daily energy, the fraction drawn from storage, days of autonomy, loss
+      factor and depth of discharge, then rounds up to whole series strings at
+      the system voltage. The array is sized from daily energy, a factor of
+      safety, the performance ratio and your site's peak sun hours.
+    </p>
+    <p>
+      Cables are sized twice — once for voltage drop and once for
+      current-carrying capacity — and the larger answer wins. That matters:
+      a cable can pass a 3% voltage-drop check at a cross-section that would
+      overheat under the same current, so checking only one of the two is how
+      DIY solar installations catch fire. Breakers are then sized to protect
+      the cable rather than the load, and capped so they can never exceed the
+      cable's ampacity.
+    </p>
+
+    <h3>Techno-economics</h3>
+    <p>
+      The economic model follows equations (1) to (13) of Sobamowo and Ojolo's
+      2018 techno-economic analysis of biomass gasification in Nigeria,
+      adapted for solar, with a fourteenth equation added for return on
+      investment. Three things genuinely differ from the biomass case. There
+      is no fuel, so the fuel-cost term is zero — which is most of why a solar
+      system can clear a benefit-cost ratio above 1 at a far lower tariff than
+      a gasification plant. Storage has to be replaced part-way through the
+      system life, so a battery replacement term is added to the O&M equation.
+      And panel output degrades, so the levelised cost of electricity is
+      indexed year by year instead of using a constant-output shortcut.
+    </p>
+    <p>
+      Return on investment is reported three ways on purpose: simple lifetime
+      ROI as the headline because it is the number people recognise, the
+      discounted figure immediately beneath it, and a simple annual rate. A
+      system can show a healthy simple ROI and a negative discounted ROI once
+      a realistic cost of capital is applied. When that happens the tool says
+      so rather than showing you the flattering number alone.
+    </p>
+
+    <p class="tool-footnote">
+      Sizing figures follow standard off-grid design practice; the economic
+      model is adapted from G. M. Sobamowo and S. J. Ojolo, "Techno-Economic
+      Analysis of Biomass Energy Utilization through Gasification Technology
+      for Sustainable Energy Production and Economic Development in Nigeria,"
+      <em>Journal of Energy</em>, vol. 2018, Article ID 4860252. See our
+      <a href="/terms/">Terms</a> for what this tool is (and isn't) a
+      substitute for.
+    </p>
+  </article>
+</BaseLayout>

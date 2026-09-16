@@ -221,6 +221,24 @@ Pure JavaScript maths, no WASM required, and directly adjacent to well-paid cons
 - Review Search Console weekly for queries earning impressions but poor positions, and build or expand content to close those gaps.
 - Apply for Google AdSense once there are roughly 30–50 indexed pages with real traffic — though note that freelance conversions will almost certainly out-earn display ads in a niche this technical.
 
+### Addendum — Solar Power System Calculator (built)
+
+> Status: **shipped 2026-09-16** at `/tools/solar-calculator/`. Not part of
+> the 11-stage roadmap above and doesn't change any of it — a sibling tool
+> alongside the Checker, Generator and Stack-Up tools.
+>
+> Sizes a complete off-grid or backup system (load audit → inverter → battery
+> → array → charge controller → cables → breakers → surge protection) and runs
+> a techno-economic analysis: equations (1)–(13) adapted from Sobamowo &
+> Ojolo (2018) plus a fourteenth for return on investment. Full design,
+> source-material contradictions and QA record in
+> [`SOLAR_CALCULATOR_PLAN.md`](SOLAR_CALCULATOR_PLAN.md).
+>
+> Two things remain outstanding, neither blocking use of the tool: real
+> Nigerian component prices (it ships placeholders, clearly labelled as such
+> in the UI) and the lead-capture path, which still needs Supabase,
+> Cloudflare Turnstile and a WhatsApp Business number.
+
 ## Sources
 
 - occt-import-js — github.com/kovacsv/occt-import-js
