@@ -11,7 +11,8 @@
     "prebuild": "node scripts/copy-wasm-assets.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

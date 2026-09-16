@@ -906,6 +906,7 @@ Phases 1, 2 and 2b shipped together. What exists:
 
 | File | Contents |
 |---|---|
+| `tests/solar/*.test.ts` | Standing `node:test` suite, 69 tests — run with `npm test` |
 | `src/lib/solar/catalog.ts` | 33-appliance catalog, R/C/I suggestion by name, fallback classifier, default surge factors |
 | `src/lib/solar/engine.ts` | Stages 0–7, `SizingSettings` with every constant named and overridable |
 | `src/lib/solar/economics.ts` | Equations (1)–(14b), annuity helper, Newton-Raphson IRR with bisection guard |
@@ -1090,9 +1091,12 @@ Resolved:
 - ~~Do the R/C/I classes have an arithmetic role?~~ Yes — confirmed and
   implemented. Inductive loads carry surge into the design total; R and C do
   not.
-- ~~Test runner?~~ Neither. Verified with disposable Node scripts, matching
-  how the gear, Monte Carlo and GD&T maths were checked. Promote them to
-  `node:test` if you want a standing suite — still zero new dependencies.
+- ~~Test runner?~~ `node:test`, zero new dependencies, wired to `npm test`.
+  The disposable-script convention was the right default, but this module's
+  maths is safety-relevant and two QA passes found twelve defects in it, so
+  the verification is now permanent rather than thrown away. A mutation check
+  confirms the suite bites: reintroducing any of the three number-changing
+  defects fails it.
 
 Still open:
 

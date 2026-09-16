@@ -17,8 +17,8 @@
 // All money is in the base currency (NGN); the UI converts for display.
 // Pure: no DOM, no fetch.
 
-import { sanitizeSettings, type SizingResult, type SizingSettings } from './engine';
-import type { PriceBook, TariffBook } from './prices';
+import { sanitizeSettings, type SizingResult, type SizingSettings } from './engine.ts';
+import type { PriceBook, TariffBook } from './prices.ts';
 
 export interface EconomicSettings {
   /** Plant life in years. */

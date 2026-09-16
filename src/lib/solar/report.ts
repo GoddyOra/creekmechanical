@@ -1,10 +1,10 @@
 // Plain-text report for the solar calculator — same copy/download pattern as
 // the tolerance stack-up tool.
 
-import type { SizingResult, SizingSettings } from './engine';
-import type { EconomicsResult, EconomicSettings } from './economics';
-import { LOAD_CLASS_LABEL } from './catalog';
-import { type Currency, fromNgn, formatMoney } from './currency';
+import type { SizingResult, SizingSettings } from './engine.ts';
+import type { EconomicsResult, EconomicSettings } from './economics.ts';
+import { LOAD_CLASS_LABEL } from './catalog.ts';
+import { type Currency, fromNgn, formatMoney } from './currency.ts';
 
 function line(label: string, value: string): string {
   return `${label.padEnd(38)}${value}`;

@@ -8,7 +8,7 @@
 // (lead-acid battery count and both panel counts) because the board rounds
 // intermediates before dividing. Do not "fix" those to match the photos.
 
-import { type LoadClass, defaultSurge } from './catalog';
+import { type LoadClass, defaultSurge } from './catalog.ts';
 
 // ---------------------------------------------------------------------------
 // Inputs

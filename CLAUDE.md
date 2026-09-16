@@ -86,11 +86,22 @@ don't split them back apart. `sanitizeSettings` / `sanitizeEconomicSettings`
 clamp every input; both `computeSizing` and `computeEconomics` must call them,
 because they receive the settings object separately.
 
-**Verification is by disposable Node script**, not a test framework —
-`node --experimental-strip-types`, matching how the gear, Monte Carlo and GD&T
-maths were checked. Note that Node needs explicit `.ts` extensions on relative
-imports while the repo (and Vite) use extensionless; copy the lib to a temp
-dir and rewrite the imports rather than changing repo style.
+**`npm test` runs a standing suite** — `node --test` over `tests/solar/`,
+69 tests, no new dependencies. This is the exception to the repo's
+disposable-script convention: the solar maths is safety-relevant and two QA
+passes found twelve defects in it, so it earns permanent coverage. The suite
+checks the course's worked examples, reproduces the source paper's Tables 17
+and 18, and runs a seeded 2,000-case sweep asserting cross-equation
+invariants (BCR > 1 must agree with NPV > 0; IRR above the hurdle with a
+positive NPV; no cable below its design current or its breaker).
+
+**`src/lib/solar/*.ts` uses explicit `.ts` extensions on relative imports**,
+unlike the other libs here. That is deliberate and load-bearing: Node's ESM
+loader cannot resolve extensionless relative imports, so without it `npm test`
+cannot run the library directly. `allowImportingTsExtensions` is already on
+via `astro/tsconfigs/strict`, and Vite resolves both forms. Don't "tidy" them
+away. The `.astro` component keeps extensionless imports, matching its
+sibling components.
 
 It's also the first feature that would need a Cloudflare Worker `main` script
 (for lead capture, still unbuilt); today `wrangler.jsonc` is assets-only, so
