@@ -27,6 +27,21 @@ const organizationSchema = {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google tag (gtag.js) — GA4 property G-VSEFVLY7T6.
+         `is:inline` is required: without it Astro bundles and rewrites these,
+         which breaks the async third-party loader. Placed here so it runs as
+         early as possible, after charset (which the HTML spec wants first).
+         Declared in the privacy policy — keep the two in step. -->
+    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-VSEFVLY7T6"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-VSEFVLY7T6');
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | {siteName}</title>
     <meta name="description" content={description} />
